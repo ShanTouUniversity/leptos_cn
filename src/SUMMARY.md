@@ -1,6 +1,6 @@
 # Summary
 
-- [中文译文](./cn/SUMMARY.md)
+# 中文译文
   - [简介](./cn/01_introduction.md)
   - [开始使用](./cn/getting_started/README.md)
     - [Leptos 开发体验改进](./cn/getting_started/leptos_dx.md)
@@ -61,7 +61,7 @@
 
 ---
 
-- [英文原文](./en/SUMMARY.md)
+# 英文原文
   - [Introduction](./en/01_introduction.md)
   - [Getting Started](./en/getting_started/README.md)
     - [Leptos DX](./en/getting_started/leptos_dx.md)
