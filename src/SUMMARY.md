@@ -2,7 +2,7 @@
 
 - [中文译文](./cn/SUMMARY.md)
   - [简介](./cn/01_introduction.md)
-  - [Getting Started](./cn/getting_started/README.md)
+  - [开始使用](./cn/getting_started/README.md)
     - [Leptos DX](./cn/getting_started/leptos_dx.md)
     - [The Leptos Community and leptos-* Crates](./cn/getting_started/community_crates.md)
   - [Part 1: Building User Interfaces](./cn/view/README.md)
