@@ -7,7 +7,7 @@
 - [第一部分：构建用户界面](./view/README.md)
   - [一个基础组件](./view/01_basic_component.md)
   - [动态属性](./view/02_dynamic_attributes.md)
-  - [Components and Props](./view/03_components.md)
+  - [组件和 Props](./view/03_components.md)
   - [Iteration](./view/04_iteration.md)
   - [Iterating over More Complex Data](./view/04b_iteration.md)
   - [Forms and Inputs](./view/05_forms.md)
