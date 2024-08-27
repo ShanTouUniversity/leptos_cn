@@ -1,28 +1,22 @@
-# Iteration
+# 迭代
 
-Whether you’re listing todos, displaying a table, or showing product images,
-iterating over a list of items is a common task in web applications. Reconciling
-the differences between changing sets of items can also be one of the trickiest
-tasks for a framework to handle well.
+无论你是列出待办事项、显示表格还是显示产品图片，迭代项目列表都是 Web 应用程序中的常见任务。协调不断变化的项目集之间的差异也是框架需要妥善处理的最棘手的任务之一。
 
-Leptos supports two different patterns for iterating over items:
+Leptos 支持两种不同的迭代项目模式：
 
-1. For static views: `Vec<_>`
-2. For dynamic lists: `<For/>`
+1. 对于静态视图：`Vec<_>`
+2. 对于动态列表：`<For/>`
 
-## Static Views with `Vec<_>`
+## 使用 `Vec<_>` 的静态视图
 
-Sometimes you need to show an item repeatedly, but the list you’re drawing from
-does not often change. In this case, it’s important to know that you can insert
-any `Vec<IV> where IV: IntoView` into your view. In other words, if you can render
-`T`, you can render `Vec<T>`.
+有时你需要重复显示一个项目，但你从中绘制的列表并不经常更改。在这种情况下，重要的是要知道你可以在视图中插入任何 `Vec<IV> where IV: IntoView`。换句话说，如果你可以渲染 `T`，你就可以渲染 `Vec<T>`。
 
 ```rust
 let values = vec![0, 1, 2];
 view! {
-    // this will just render "012"
+    // 这将只渲染 "012"
     <p>{values.clone()}</p>
-    // or we can wrap them in <li>
+    // 或者我们可以将它们包装在 <li> 中
     <ul>
         {values.into_iter()
             .map(|n| view! { <li>{n}</li>})
@@ -31,14 +25,14 @@ view! {
 }
 ```
 
-Leptos also provides a `.collect_view()` helper function that allows you to collect any iterator of `T: IntoView` into `Vec<View>`.
+Leptos 还提供了一个 `.collect_view()` 辅助函数，允许你将任何 `T: IntoView` 的迭代器收集到 `Vec<View>` 中。
 
 ```rust
 let values = vec![0, 1, 2];
 view! {
-    // this will just render "012"
+    // 这将只渲染 "012"
     <p>{values.clone()}</p>
-    // or we can wrap them in <li>
+    // 或者我们可以将它们包装在 <li> 中
     <ul>
         {values.into_iter()
             .map(|n| view! { <li>{n}</li>})
@@ -47,16 +41,15 @@ view! {
 }
 ```
 
-The fact that the _list_ is static doesn’t mean the interface needs to be static.
-You can render dynamic items as part of a static list.
+_列表_ 是静态的并不意味着界面需要是静态的。你可以将动态项目渲染为静态列表的一部分。
 
 ```rust
-// create a list of 5 signals
+// 创建一个包含 5 个信号的列表
 let length = 5;
 let counters = (1..=length).map(|idx| create_signal(idx));
 
-// each item manages a reactive view
-// but the list itself will never change
+// 每个项目管理一个响应式视图
+// 但列表本身永远不会改变
 let counter_buttons = counters
     .map(|(count, set_count)| {
         view! {
@@ -76,40 +69,30 @@ view! {
 }
 ```
 
-You _can_ render a `Fn() -> Vec<_>` reactively as well. But note that every time
-it changes, this will rerender every item in the list. This is quite inefficient!
-Fortunately, there’s a better way.
+你 _也可以_ 响应式地渲染 `Fn() -> Vec<_>`。但请注意，每次它发生变化时，这都会重新渲染列表中的每个项目。这是非常低效的！幸运的是，有一种更好的方法。
 
-## Dynamic Rendering with the `<For/>` Component
+## 使用 `<For/>` 组件进行动态渲染
 
-The [`<For/>`](https://docs.rs/leptos/latest/leptos/fn.For.html) component is a
-keyed dynamic list. It takes three props:
+[`<For/>`](https://docs.rs/leptos/latest/leptos/fn.For.html) 组件是一个带键的动态列表。它接受三个 props：
 
-- `each`: a function (such as a signal) that returns the items `T` to be iterated over
-- `key`: a key function that takes `&T` and returns a stable, unique key or ID
-- `children`: renders each `T` into a view
+- `each`：一个函数（例如信号），返回要迭代的项目 `T`
+- `key`：一个键函数，接受 `&T` 并返回一个稳定的、唯一的键或 ID
+- `children`：将每个 `T` 渲染成一个视图
 
-`key` is, well, the key. You can add, remove, and move items within the list. As
-long as each item’s key is stable over time, the framework does not need to rerender
-any of the items, unless they are new additions, and it can very efficiently add,
-remove, and move items as they change. This allows for extremely efficient updates
-to the list as it changes, with minimal additional work.
+`key` 是，嗯，关键。你可以在列表中添加、删除和移动项目。只要每个项目的键随着时间的推移保持稳定，框架就不需要重新渲染任何项目，除非它们是新增的，并且它可以非常有效地添加、删除和移动项目，因为它们会发生变化。这允许在列表更改时对其进行极其有效的更新，而只需最少的额外工作。
 
-Creating a good `key` can be a little tricky. You generally do _not_ want to use
-an index for this purpose, as it is not stable—if you remove or move items, their
-indices change.
+创建一个好的 `key` 可能有点棘手。你通常 _不_ 想为此目的使用索引，因为它不稳定——如果你删除或移动项目，它们的索引会发生变化。
 
-But it’s a great idea to do something like generating a unique ID for each row as
-it is generated, and using that as an ID for the key function.
+但是，在生成每一行时为其生成一个唯一的 ID，并将其用作键函数的 ID，这是一个好主意。
 
-Check out the `<DynamicList/>` component below for an example.
+查看下面的 `<DynamicList/>` 组件以获取示例。
 
-```admonish sandbox title="Live example" collapsible=true
+```admonish sandbox title="实时示例" collapsible=true
 
-[Click to open CodeSandbox.](https://codesandbox.io/p/sandbox/4-iteration-0-5-pwdn2y?file=%2Fsrc%2Fmain.rs%3A1%2C1)
+[点击打开 CodeSandbox.](https://codesandbox.io/p/sandbox/4-iteration-0-5-pwdn2y?file=%2Fsrc%2Fmain.rs%3A1%2C1)
 
 <noscript>
-  Please enable JavaScript to view examples.
+  请启用 JavaScript 来查看示例。
 </noscript>
 
 <template>
@@ -119,16 +102,16 @@ Check out the `<DynamicList/>` component below for an example.
 ```
 
 <details>
-<summary>CodeSandbox Source</summary>
+<summary>CodeSandbox 源码</summary>
 
 ```rust
 use leptos::*;
 
-// Iteration is a very common task in most applications.
-// So how do you take a list of data and render it in the DOM?
-// This example will show you the two ways:
-// 1) for mostly-static lists, using Rust iterators
-// 2) for lists that grow, shrink, or move items, using <For/>
+// 迭代是大多数应用程序中非常常见的任务。
+// 那么如何获取数据列表并在 DOM 中渲染它呢？
+// 此示例将向你展示两种方法：
+// 1) 对于大多数静态列表，使用 Rust 迭代器
+// 2) 对于增长、收缩或移动项目的列表，使用 <For/>
 
 #[component]
 fn App() -> impl IntoView {
@@ -143,19 +126,19 @@ fn App() -> impl IntoView {
     }
 }
 
-/// A list of counters, without the ability
-/// to add or remove any.
+/// 计数器列表，无法
+/// 添加或删除任何计数器。
 #[component]
 fn StaticList(
-    /// How many counters to include in this list.
+    /// 此列表中要包含的计数器数量。
     length: usize,
 ) -> impl IntoView {
-    // create counter signals that start at incrementing numbers
+    // 创建以递增数字开头的计数器信号
     let counters = (1..=length).map(|idx| create_signal(idx));
 
-    // when you have a list that doesn't change, you can
-    // manipulate it using ordinary Rust iterators
-    // and collect it into a Vec<_> to insert it into the DOM
+    // 当你有一个不变的列表时，你可以
+    // 使用普通的 Rust 迭代器来操作它
+    // 并将其收集到 Vec<_> 中以将其插入 DOM
     let counter_buttons = counters
         .map(|(count, set_count)| {
             view! {
@@ -170,53 +153,53 @@ fn StaticList(
         })
         .collect::<Vec<_>>();
 
-    // Note that if `counter_buttons` were a reactive list
-    // and its value changed, this would be very inefficient:
-    // it would rerender every row every time the list changed.
+    // 请注意，如果 `counter_buttons` 是一个响应式列表
+    // 并且它的值发生了变化，这将非常低效：
+    // 每次列表更改时，它都会重新渲染每一行。
     view! {
         <ul>{counter_buttons}</ul>
     }
 }
 
-/// A list of counters that allows you to add or
-/// remove counters.
+/// 允许你添加或
+/// 删除计数器的计数器列表。
 #[component]
 fn DynamicList(
-    /// The number of counters to begin with.
+    /// 开始时的计数器数量。
     initial_length: usize,
 ) -> impl IntoView {
-    // This dynamic list will use the <For/> component.
-    // <For/> is a keyed list. This means that each row
-    // has a defined key. If the key does not change, the row
-    // will not be re-rendered. When the list changes, only
-    // the minimum number of changes will be made to the DOM.
+    // 此动态列表将使用 <For/> 组件。
+    // <For/> 是一个带键的列表。这意味着每一行
+    // 都有一个定义的键。如果键没有改变，则该行
+    // 不会重新渲染。当列表发生变化时，只有
+    // 对 DOM 进行最少数量的更改。
 
-    // `next_counter_id` will let us generate unique IDs
-    // we do this by simply incrementing the ID by one
-    // each time we create a counter
+    // `next_counter_id` 将让我们生成唯一的 ID
+    // 我们通过在每次
+    // 创建计数器时简单地将 ID 加一来做到这一点
     let mut next_counter_id = initial_length;
 
-    // we generate an initial list as in <StaticList/>
-    // but this time we include the ID along with the signal
+    // 我们生成一个初始列表，如 <StaticList/> 中所示
+    // 但这次我们将 ID 与信号一起包含在内
     let initial_counters = (0..initial_length)
         .map(|id| (id, create_signal(id + 1)))
         .collect::<Vec<_>>();
 
-    // now we store that initial list in a signal
-    // this way, we'll be able to modify the list over time,
-    // adding and removing counters, and it will change reactively
+    // 现在我们将该初始列表存储在一个信号中
+    // 这样，我们将能够随着时间的推移修改列表，
+    // 添加和删除计数器，它将以响应式的方式发生变化
     let (counters, set_counters) = create_signal(initial_counters);
 
     let add_counter = move |_| {
-        // create a signal for the new counter
+        // 为新的计数器创建一个信号
         let sig = create_signal(next_counter_id + 1);
-        // add this counter to the list of counters
+        // 将此计数器添加到计数器列表中
         set_counters.update(move |counters| {
-            // since `.update()` gives us `&mut T`
-            // we can just use normal Vec methods like `push`
+            // 因为 `.update()` 为我们提供了 `&mut T`
+            // 我们可以使用普通的 Vec 方法，如 `push`
             counters.push((next_counter_id, sig))
         });
-        // increment the ID so it's always unique
+        // 增加 ID，使其始终唯一
         next_counter_id += 1;
     };
 
@@ -226,20 +209,20 @@ fn DynamicList(
                 "Add Counter"
             </button>
             <ul>
-                // The <For/> component is central here
-                // This allows for efficient, key list rendering
+                // <For/> 组件在这里是中心
+                // 这允许高效、关键的列表渲染
                 <For
-                    // `each` takes any function that returns an iterator
-                    // this should usually be a signal or derived signal
-                    // if it's not reactive, just render a Vec<_> instead of <For/>
+                    // `each` 接受任何返回迭代器的函数
+                    // 这通常应该是信号或派生信号
+                    // 如果它不是响应式的，只需渲染 Vec<_> 而不是 <For/>
                     each=counters
-                    // the key should be unique and stable for each row
-                    // using an index is usually a bad idea, unless your list
-                    // can only grow, because moving items around inside the list
-                    // means their indices will change and they will all rerender
+                    // 键对于每一行应该是唯一的和稳定的
+                    // 使用索引通常是一个坏主意，除非你的列表
+                    // 只能增长，因为在列表中移动项目
+                    // 意味着它们的索引会发生变化，并且它们都会重新渲染
                     key=|counter| counter.0
-                    // `children` receives each item from your `each` iterator
-                    // and returns a view
+                    // `children` 接收来自你的 `each` 迭代器的每个项目
+                    // 并返回一个视图
                     children=move |(id, (count, set_count))| {
                         view! {
                             <li>
