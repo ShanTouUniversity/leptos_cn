@@ -1,31 +1,18 @@
-# Parent-Child Communication
+# 父子组件通信
 
-You can think of your application as a nested tree of components. Each component
-handles its own local state and manages a section of the user interface, so
-components tend to be relatively self-contained.
+你可以将你的应用程序视为一个嵌套的组件树。每个组件都处理自己的本地状态并管理用户界面的一部分，因此组件往往是相对独立的。
 
-Sometimes, though, you’ll want to communicate between a parent component and its
-child. For example, imagine you’ve defined a `<FancyButton/>` component that adds
-some styling, logging, or something else to a `<button/>`. You want to use a
-`<FancyButton/>` in your `<App/>` component. But how can you communicate between
-the two?
+但是，有时你需要在父组件与其子组件之间进行通信。例如，假设你定义了一个 `<FancyButton/>` 组件，它为 `<button/>` 添加了一些样式、日志记录或其他内容。你想在你的 `<App/>` 组件中使用 `<FancyButton/>`。但是你如何在两者之间进行通信呢？
 
-It’s easy to communicate state from a parent component to a child component. We
-covered some of this in the material on [components and props](./03_components.md).
-Basically if you want the parent to communicate to the child, you can pass a
-[`ReadSignal`](https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html), a
-[`Signal`](https://docs.rs/leptos/latest/leptos/struct.Signal.html), or even a
-[`MaybeSignal`](https://docs.rs/leptos/latest/leptos/enum.MaybeSignal.html) as a prop.
+将状态从父组件传递到子组件很容易。我们在 [组件和 props](./03_components.md) 的材料中介绍了一些这方面的内容。基本上，如果你希望父组件与子组件通信，你可以传递一个 [`ReadSignal`](https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html)、一个 [`Signal`](https://docs.rs/leptos/latest/leptos/struct.Signal.html)，甚至一个 [`MaybeSignal`](https://docs.rs/leptos/latest/leptos/enum.MaybeSignal.html) 作为 prop。
 
-But what about the other direction? How can a child send notifications about events
-or state changes back up to the parent?
+但是反过来呢？子组件如何将有关事件或状态更改的通知发送回父组件？
 
-There are four basic patterns of parent-child communication in Leptos.
+在 Leptos 中，有四种基本的父子组件通信模式。
 
-## 1. Pass a [`WriteSignal`](https://docs.rs/leptos/latest/leptos/struct.WriteSignal.html)
+## 1. 传递一个 [`WriteSignal`](https://docs.rs/leptos/latest/leptos/struct.WriteSignal.html)
 
-One approach is simply to pass a `WriteSignal` from the parent down to the child, and update
-it in the child. This lets you manipulate the state of the parent from the child.
+一种方法是简单地将 `WriteSignal` 从父组件传递到子组件，并在子组件中更新它。这使你可以从子组件操作父组件的状态。
 
 ```rust
 #[component]
@@ -49,16 +36,11 @@ pub fn ButtonA(setter: WriteSignal<bool>) -> impl IntoView {
 }
 ```
 
-This pattern is simple, but you should be careful with it: passing around a `WriteSignal`
-can make it hard to reason about your code. In this example, it’s pretty clear when you
-read `<App/>` that you are handing off the ability to mutate `toggled`, but it’s not at
-all clear when or how it will change. In this small, local example it’s easy to understand,
-but if you find yourself passing around `WriteSignal`s like this throughout your code,
-you should really consider whether this is making it too easy to write spaghetti code.
+这种模式很简单，但你应该小心使用它：传递 `WriteSignal` 会使你的代码难以推理。在这个例子中，当你阅读 `<App/>` 时，很明显你正在交出改变 `toggled` 的能力，但根本不清楚它何时或如何改变。在这个小的、局部的例子中很容易理解，但是如果你发现你在整个代码中都像这样传递 `WriteSignal`，你应该认真考虑这是否会让编写意大利面条式代码变得太容易。
 
-## 2. Use a Callback
+## 2. 使用回调函数
 
-Another approach would be to pass a callback to the child: say, `on_click`.
+另一种方法是将一个回调函数传递给子组件：例如 `on_click`。
 
 ```rust
 #[component]
@@ -82,22 +64,15 @@ pub fn ButtonB(#[prop(into)] on_click: Callback<MouseEvent>) -> impl IntoView
 }
 ```
 
-You’ll notice that whereas `<ButtonA/>` was given a `WriteSignal` and decided how to mutate it,
-`<ButtonB/>` simply fires an event: the mutation happens back in `<App/>`. This has the advantage
-of keeping local state local, preventing the problem of spaghetti mutation. But it also means
-the logic to mutate that signal needs to exist up in `<App/>`, not down in `<ButtonB/>`. These
-are real trade-offs, not a simple right-or-wrong choice.
+你会注意到，`<ButtonA/>` 被赋予了一个 `WriteSignal` 并决定如何改变它，而 `<ButtonB/>` 只是触发一个事件：改变发生在 `<App/>` 中。这样做的好处是将局部状态保持在局部，防止了意大利面条式修改的问题。但这也意味着修改该信号的逻辑需要存在于 `<App/>` 中，而不是 `<ButtonB/>` 中。这些是真正的权衡，而不是简单的对错选择。
 
-> Note the way we use the `Callback<In, Out>` type. This is basically a
-> wrapper around a closure `Fn(In) -> Out` that is also `Copy` and makes it
-> easy to pass around.
+> 注意我们使用 `Callback<In, Out>` 类型的方式。这基本上是一个围绕闭包 `Fn(In) -> Out` 的包装器，它也是 `Copy` 的，并且易于传递。
 >
-> We also used the `#[prop(into)]` attribute so we can pass a normal closure into
-> `on_click`. Please see the [chapter "`into` Props"](./03_components.md#into-props) for more details.
+> 我们还使用了 `#[prop(into)]` 属性，以便我们可以将普通的闭包传递给 `on_click`。请参阅[章节 “`into` Props”](./03_components.md#into-props) 了解更多详细信息。
 
-### 2.1 Use Closure instead of `Callback`
+### 2.1 使用闭包而不是 `Callback`
 
-You can use a Rust closure `Fn(MouseEvent)` directly instead of `Callback`:
+你可以直接使用 Rust 闭包 `Fn(MouseEvent)` 而不是 `Callback`：
 
 ```rust
 #[component]
@@ -123,18 +98,13 @@ where
 }
 ```
 
-The code is very similar in this case. On more advanced use-cases using a
-closure might require some cloning compared to using a `Callback`.
+在这种情况下，代码非常相似。在更高级的用例中，使用闭包可能需要一些克隆，而使用 `Callback` 则不需要。
 
-> Note the way we declare the generic type `F` here for the callback. If you’re
-> confused, look back at the [generic props](./03_components.html#generic-props) section
-> of the chapter on components.
+> 注意我们在这里为回调函数声明泛型类型 `F` 的方式。如果你感到困惑，请回顾一下关于组件的章节中的 [泛型 props](./03_components.html#generic-props) 部分。
 
-## 3. Use an Event Listener
+## 3. 使用事件监听器
 
-You can actually write Option 2 in a slightly different way. If the callback maps directly onto
-a native DOM event, you can add an `on:` listener directly to the place you use the component
-in your `view` macro in `<App/>`.
+你实际上可以用稍微不同的方式编写选项 2。如果回调函数直接映射到原生 DOM 事件，你可以直接在 `<App/>` 的 `view` 宏中使用组件的地方添加 `on:` 监听器。
 
 ```rust
 #[component]
@@ -142,8 +112,8 @@ pub fn App() -> impl IntoView {
     let (toggled, set_toggled) = create_signal(false);
     view! {
         <p>"Toggled? " {toggled}</p>
-        // note the on:click instead of on_click
-        // this is the same syntax as an HTML element event listener
+        // 注意 on:click 而不是 on_click
+        // 这与 HTML 元素事件监听器的语法相同
         <ButtonC on:click=move |_| set_toggled.update(|value| *value = !*value)/>
     }
 }
@@ -157,20 +127,13 @@ pub fn ButtonC() -> impl IntoView {
 }
 ```
 
-This lets you write way less code in `<ButtonC/>` than you did for `<ButtonB/>`,
-and still gives a correctly-typed event to the listener. This works by adding an
-`on:` event listener to each element that `<ButtonC/>` returns: in this case, just
-the one `<button>`.
+这让你在 `<ButtonC/>` 中编写的代码比在 `<ButtonB/>` 中少得多，并且仍然为监听器提供了一个正确类型的事件。这是通过为 `<ButtonC/>` 返回的每个元素添加一个 `on:` 事件监听器来实现的：在本例中，只有一个 `<button>`。
 
-Of course, this only works for actual DOM events that you’re passing directly through
-to the elements you’re rendering in the component. For more complex logic that
-doesn’t map directly onto an element (say you create `<ValidatedForm/>` and want an
-`on_valid_form_submit` callback) you should use Option 2.
+当然，这只适用于你直接传递给组件中渲染的元素的实际 DOM 事件。对于不直接映射到元素的更复杂的逻辑（例如，你创建了 `<ValidatedForm/>` 并想要一个 `on_valid_form_submit` 回调函数），你应该使用选项 2。
 
-## 4. Providing a Context
+## 4. 提供一个上下文
 
-This version is actually a variant on Option 1. Say you have a deeply-nested component
-tree:
+这个版本实际上是选项 1 的一个变体。假设你有一个深度嵌套的组件树：
 
 ```rust
 #[component]
@@ -209,9 +172,7 @@ pub fn ButtonD<F>() -> impl IntoView {
 }
 ```
 
-Now `<ButtonD/>` is no longer a direct child of `<App/>`, so you can’t simply
-pass your `WriteSignal` to its props. You could do what’s sometimes called
-“prop drilling,” adding a prop to each layer between the two:
+现在 `<ButtonD/>` 不再是 `<App/>` 的直接子级，因此你不能简单地将你的 `WriteSignal` 传递给它的 props。你可以做一些有时被称为“prop drilling”的事情，在两者之间的每一层添加一个 prop：
 
 ```rust
 #[component]
@@ -250,30 +211,22 @@ pub fn ButtonD<F>(set_toggled: WriteSignal<bool>) -> impl IntoView {
 }
 ```
 
-This is a mess. `<Layout/>` and `<Content/>` don’t need `set_toggled`; they just
-pass it through to `<ButtonD/>`. But I need to declare the prop in triplicate.
-This is not only annoying but hard to maintain: imagine we add a “half-toggled”
-option and the type of `set_toggled` needs to change to an `enum`. We have to change
-it in three places!
+这真是一团糟。`<Layout/>` 和 `<Content/>` 不需要 `set_toggled`；它们只是将其传递给 `<ButtonD/>`。但我需要声明三次这个 prop。这不仅烦人，而且难以维护：想象一下，我们添加了一个“half-toggled”选项，`set_toggled` 的类型需要更改为一个 `enum`。我们必须在三个地方更改它！
 
-Isn’t there some way to skip levels?
+有没有办法跳过层级？
 
-There is!
+有！
 
-### 4.1 The Context API
+### 4.1 上下文 API
 
-You can provide data that skips levels by using [`provide_context`](https://docs.rs/leptos/latest/leptos/fn.provide_context.html)
-and [`use_context`](https://docs.rs/leptos/latest/leptos/fn.use_context.html). Contexts are identified
-by the type of the data you provide (in this example, `WriteSignal<bool>`), and they exist in a top-down
-tree that follows the contours of your UI tree. In this example, we can use context to skip the
-unnecessary prop drilling.
+你可以使用 [`provide_context`](https://docs.rs/leptos/latest/leptos/fn.provide_context.html) 和 [`use_context`](https://docs.rs/leptos/latest/leptos/fn.use_context.html) 来提供跳过层级的数据。上下文由你提供的数据类型（在本例中为 `WriteSignal<bool>`）标识，并且它们存在于一个自上而下的树中，该树遵循你的 UI 树的轮廓。在这个例子中，我们可以使用上下文来跳过不必要的 prop drilling。
 
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
     let (toggled, set_toggled) = create_signal(false);
 
-    // share `set_toggled` with all children of this component
+    // 与此组件的所有子组件共享 `set_toggled`
     provide_context(set_toggled);
 
     view! {
@@ -282,14 +235,14 @@ pub fn App() -> impl IntoView {
     }
 }
 
-// <Layout/> and <Content/> omitted
-// To work in this version, drop their references to set_toggled
+// <Layout/> 和 <Content/> 省略
+// 要在此版本中工作，请删除它们对 set_toggled 的引用
 
 #[component]
 pub fn ButtonD() -> impl IntoView {
-    // use_context searches up the context tree, hoping to
-    // find a `WriteSignal<bool>`
-    // in this case, I .expect() because I know I provided it
+    // use_context 向上搜索上下文树，希望
+    // 找到一个 `WriteSignal<bool>`
+    // 在这种情况下，我使用 .expect() 因为我知道我提供了它
     let setter = use_context::<WriteSignal<bool>>()
         .expect("to have found the setter provided");
 
@@ -303,28 +256,16 @@ pub fn ButtonD() -> impl IntoView {
 }
 ```
 
-The same caveats apply to this as to `<ButtonA/>`: passing a `WriteSignal`
-around should be done with caution, as it allows you to mutate state from
-arbitrary parts of your code. But when done carefully, this can be one of
-the most effective techniques for global state management in Leptos: simply
-provide the state at the highest level you’ll need it, and use it wherever
-you need it lower down.
+与 `<ButtonA/>` 相同的注意事项也适用于此：传递 `WriteSignal` 应该谨慎行事，因为它允许你从代码的任意部分修改状态。但是，如果小心谨慎地进行，这可能是 Leptos 中最有效的全局状态管理技术之一：只需在你需要它的最高级别提供状态，并在你需要它的较低级别使用它。
 
-Note that there are no performance downsides to this approach. Because you
-are passing a fine-grained reactive signal, _nothing happens_ in the intervening
-components (`<Layout/>` and `<Content/>`) when you update it. You are communicating
-directly between `<ButtonD/>` and `<App/>`. In fact—and this is the power of
-fine-grained reactivity—you are communicating directly between a button click
-in `<ButtonD/>` and a single text node in `<App/>`. It’s as if the components
-themselves don’t exist at all. And, well... at runtime, they don’t. It’s just
-signals and effects, all the way down.
+请注意，这种方法没有性能方面的缺点。因为你传递的是一个细粒度的响应式信号，所以在更新它时，中间组件（`<Layout/>` 和 `<Content/>`）_什么也不会发生_。你直接在 `<ButtonD/>` 和 `<App/>` 之间进行通信。事实上——这就是细粒度响应式的强大之处——你直接在 `<ButtonD/>` 中的按钮点击和 `<App/>` 中的单个文本节点之间进行通信。就好像这些组件本身根本不存在一样。而且，嗯... 在运行时，它们确实不存在。一直到底都只是信号和效果。
 
-```admonish sandbox title="Live example" collapsible=true
+```admonish sandbox title="实时示例" collapsible=true
 
-[Click to open CodeSandbox.](https://codesandbox.io/p/sandbox/8-parent-child-0-5-7rz7qd?file=%2Fsrc%2Fmain.rs%3A1%2C2)
+[点击打开 CodeSandbox.](https://codesandbox.io/p/sandbox/8-parent-child-0-5-7rz7qd?file=%2Fsrc%2Fmain.rs%3A1%2C2)
 
 <noscript>
-  Please enable JavaScript to view examples.
+  请启用 JavaScript 来查看示例。
 </noscript>
 
 <template>
@@ -334,40 +275,39 @@ signals and effects, all the way down.
 ```
 
 <details>
-<summary>CodeSandbox Source</summary>
+<summary>CodeSandbox 源码</summary>
 
 ```rust
 use leptos::{ev::MouseEvent, *};
 
-// This highlights four different ways that child components can communicate
-// with their parent:
-// 1) <ButtonA/>: passing a WriteSignal as one of the child component props,
-//    for the child component to write into and the parent to read
-// 2) <ButtonB/>: passing a closure as one of the child component props, for
-//    the child component to call
-// 3) <ButtonC/>: adding an `on:` event listener to a component
-// 4) <ButtonD/>: providing a context that is used in the component (rather than prop drilling)
+// 这突出了子组件与父组件通信的四种不同方式：
+// 1) <ButtonA/>：将 WriteSignal 作为子组件 props 之一传递，
+//    供子组件写入和父组件读取
+// 2) <ButtonB/>：将闭包作为子组件 props 之一传递，供
+//    子组件调用
+// 3) <ButtonC/>：向组件添加 `on:` 事件监听器
+// 4) <ButtonD/>：提供一个在组件中使用的上下文（而不是 prop drilling）
 
 #[derive(Copy, Clone)]
 struct SmallcapsContext(WriteSignal<bool>);
 
 #[component]
 pub fn App() -> impl IntoView {
-    // just some signals to toggle three classes on our <p>
+    // 只是一些用于切换 <p> 上三个类的信号
     let (red, set_red) = create_signal(false);
     let (right, set_right) = create_signal(false);
     let (italics, set_italics) = create_signal(false);
     let (smallcaps, set_smallcaps) = create_signal(false);
 
-    // the newtype pattern isn't *necessary* here but is a good practice
-    // it avoids confusion with other possible future `WriteSignal<bool>` contexts
-    // and makes it easier to refer to it in ButtonC
+    // newtype 模式在这里不是*必需的*，但这是一个好习惯
+    // 它避免了与其他可能的未来 `WriteSignal<bool>` 上下文的混淆
+    // 并使其更容易在 ButtonC 中引用
     provide_context(SmallcapsContext(set_smallcaps));
 
     view! {
         <main>
             <p
-                // class: attributes take F: Fn() => bool, and these signals all implement Fn()
+                // class: 属性接受 F: Fn() => bool，并且这些信号都实现了 Fn()
                 class:red=red
                 class:right=right
                 class:italics=italics
@@ -376,27 +316,27 @@ pub fn App() -> impl IntoView {
                 "Lorem ipsum sit dolor amet."
             </p>
 
-            // Button A: pass the signal setter
+            // 按钮 A：传递信号设置器
             <ButtonA setter=set_red/>
 
-            // Button B: pass a closure
+            // 按钮 B：传递一个闭包
             <ButtonB on_click=move |_| set_right.update(|value| *value = !*value)/>
 
-            // Button B: use a regular event listener
-            // setting an event listener on a component like this applies it
-            // to each of the top-level elements the component returns
+            // 按钮 B：使用常规事件监听器
+            // 像这样在组件上设置事件监听器会将其应用于
+            // 组件返回的每个顶级元素
             <ButtonC on:click=move |_| set_italics.update(|value| *value = !*value)/>
 
-            // Button D gets its setter from context rather than props
+            // 按钮 D 从上下文而不是 props 获取其设置器
             <ButtonD/>
         </main>
     }
 }
 
-/// Button A receives a signal setter and updates the signal itself
+/// 按钮 A 接收一个信号设置器并更新信号本身
 #[component]
 pub fn ButtonA(
-    /// Signal that will be toggled when the button is clicked.
+    /// 单击按钮时将切换的信号。
     setter: WriteSignal<bool>,
 ) -> impl IntoView {
     view! {
@@ -408,10 +348,10 @@ pub fn ButtonA(
     }
 }
 
-/// Button B receives a closure
+/// 按钮 B 接收一个闭包
 #[component]
 pub fn ButtonB<F>(
-    /// Callback that will be invoked when the button is clicked.
+    /// 单击按钮时将调用的回调。
     on_click: F,
 ) -> impl IntoView
 where
@@ -425,21 +365,21 @@ where
         </button>
     }
 
-    // just a note: in an ordinary function ButtonB could take on_click: impl Fn(MouseEvent) + 'static
-    // and save you from typing out the generic
-    // the component macro actually expands to define a
+    // 只是一个注释：在普通函数中，ButtonB 可以接受 on_click: impl Fn(MouseEvent) + 'static
+    // 并让你免于输入泛型
+    // 组件宏实际上扩展为定义一个
     //
     // struct ButtonBProps<F> where F: Fn(MouseEvent) + 'static {
     //   on_click: F
     // }
     //
-    // this is what allows us to have named props in our component invocation,
-    // instead of an ordered list of function arguments
-    // if Rust ever had named function arguments we could drop this requirement
+    // 这就是允许我们在组件调用中使用命名 props 的原因，
+    // 而不是有序的函数参数列表
+    // 如果 Rust 曾经有命名的函数参数，我们可以放弃这个要求
 }
 
-/// Button C is a dummy: it renders a button but doesn't handle
-/// its click. Instead, the parent component adds an event listener.
+/// 按钮 C 是一个虚拟按钮：它渲染一个按钮，但不处理
+/// 它的点击。相反，父组件添加了一个事件监听器。
 #[component]
 pub fn ButtonC() -> impl IntoView {
     view! {
@@ -449,8 +389,8 @@ pub fn ButtonC() -> impl IntoView {
     }
 }
 
-/// Button D is very similar to Button A, but instead of passing the setter as a prop
-/// we get it from the context
+/// 按钮 D 与按钮 A 非常相似，但不是将设置器作为 prop 传递，
+/// 而是从上下文中获取它
 #[component]
 pub fn ButtonD() -> impl IntoView {
     let setter = use_context::<SmallcapsContext>().unwrap().0;

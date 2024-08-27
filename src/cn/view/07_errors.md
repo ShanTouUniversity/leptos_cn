@@ -1,19 +1,15 @@
-# Error Handling
+# 错误处理
 
-[In the last chapter](./06_control_flow.md), we saw that you can render `Option<T>`:
-in the `None` case, it will render nothing, and in the `Some(T)` case, it will render `T`
-(that is, if `T` implements `IntoView`). You can actually do something very similar
-with a `Result<T, E>`. In the `Err(_)` case, it will render nothing. In the `Ok(T)`
-case, it will render the `T`.
+[在上一章中](./06_control_flow.md)，我们看到你可以渲染 `Option<T>`：在 `None` 的情况下，它什么也不会渲染，而在 `Some(T)` 的情况下，它会渲染 `T`（也就是说，如果 `T` 实现了 `IntoView`）。你实际上可以使用 `Result<T, E>` 做一些非常类似的事情。在 `Err(_)` 的情况下，它什么也不会渲染。在 `Ok(T)` 的情况下，它会渲染 `T`。
 
-Let’s start with a simple component to capture a number input.
+让我们从一个简单的组件开始，用于捕获数字输入。
 
 ```rust
 #[component]
 fn NumericInput() -> impl IntoView {
     let (value, set_value) = create_signal(Ok(0));
 
-    // when input changes, try to parse a number from the input
+    // 当输入发生变化时，尝试从输入中解析一个数字
     let on_input = move |ev| set_value(event_target_value(&ev).parse::<i32>());
 
     view! {
@@ -29,43 +25,31 @@ fn NumericInput() -> impl IntoView {
 }
 ```
 
-Every time you change the input, `on_input` will attempt to parse its value into a 32-bit
-integer (`i32`), and store it in our `value` signal, which is a `Result<i32, _>`. If you
-type the number `42`, the UI will display
+每次你更改输入时，`on_input` 都会尝试将其值解析为 32 位整数 (`i32`)，并将其存储在我们的 `value` 信号中，该信号是 `Result<i32, _>`。如果你输入数字 `42`，UI 将显示
 
 ```
 You entered 42
 ```
 
-But if you type the string `foo`, it will display
+但是如果你输入字符串 `foo`，它会显示
 
 ```
 You entered
 ```
 
-This is not great. It saves us using `.unwrap_or_default()` or something, but it would be
-much nicer if we could catch the error and do something with it.
+这不太好。它避免了我们使用 `.unwrap_or_default()` 或其他类似的东西，但如果我们可以捕获错误并对其进行处理，那就更好了。
 
-You can do that, with the [`<ErrorBoundary/>`](https://docs.rs/leptos/latest/leptos/fn.ErrorBoundary.html)
-component.
+你可以使用 [`<ErrorBoundary/>`](https://docs.rs/leptos/latest/leptos/fn.ErrorBoundary.html) 组件来做到这一点。
 
 ```admonish note
-People often try to point out that `<input type="number">` prevents you from typing a string 
-like `foo`, or anything else that's not a number. This is true in some browsers, but not in all!
-Moreover, there are a variety of things that can be typed into a plain number input that are not an
-`i32`: a floating-point number, a larger-than-32-bit number, the letter `e`, and so on. The browser
-can be told to uphold some of these invariants, but browser behavior still varies: Parsing for yourself
-is important!
+人们经常试图指出 `<input type="number">` 会阻止你输入像 `foo` 这样的字符串，或任何其他不是数字的内容。这在某些浏览器中是正确的，但并非所有浏览器都如此！此外，还有各种各样的内容可以被输入到一个普通的数字输入框中，而这些内容并不是 `i32`：浮点数、大于 32 位的数字、字母 `e` 等等。可以告诉浏览器维护其中一些不变式，但浏览器的行为仍然会有所不同：自己进行解析很重要！
 ```
 
 ## `<ErrorBoundary/>`
 
-An `<ErrorBoundary/>` is a little like the `<Show/>` component we saw in the last chapter.
-If everything’s okay—which is to say, if everything is `Ok(_)`—it renders its children.
-But if there’s an `Err(_)` rendered among those children, it will trigger the
-`<ErrorBoundary/>`’s `fallback`.
+`<ErrorBoundary/>` 有点像我们在上一章中看到的 `<Show/>` 组件。如果一切正常——也就是说，如果一切都是 `Ok(_)`——它会渲染它的子级。但是，如果在这些子级中渲染了 `Err(_)`，它将触发 `<ErrorBoundary/>` 的 `fallback`。
 
-Let’s add an `<ErrorBoundary/>` to this example.
+让我们在这个例子中添加一个 `<ErrorBoundary/>`。
 
 ```rust
 #[component]
@@ -80,11 +64,11 @@ fn NumericInput() -> impl IntoView {
             "Type a number (or something that's not a number!)"
             <input type="number" on:input=on_input/>
             <ErrorBoundary
-                // the fallback receives a signal containing current errors
+                // fallback 接收一个包含当前错误的信号
                 fallback=|errors| view! {
                     <div class="error">
                         <p>"Not a number! Errors: "</p>
-                        // we can render a list of errors as strings, if we'd like
+                        // 我们可以将错误列表渲染为字符串，如果我们愿意的话
                         <ul>
                             {move || errors.get()
                                 .into_iter()
@@ -102,29 +86,27 @@ fn NumericInput() -> impl IntoView {
 }
 ```
 
-Now, if you type `42`, `value` is `Ok(42)` and you’ll see
+现在，如果你输入 `42`，`value` 就是 `Ok(42)`，你会看到
 
 ```
 You entered 42
 ```
 
-If you type `foo`, value is `Err(_)` and the `fallback` will render. We’ve chosen to render
-the list of errors as a `String`, so you’ll see something like
+如果你输入 `foo`，`value` 就是 `Err(_)`，`fallback` 将被渲染。我们选择将错误列表渲染为 `String`，因此你会看到类似这样的内容
 
 ```
 Not a number! Errors:
 - cannot parse integer from empty string
 ```
 
-If you fix the error, the error message will disappear and the content you’re wrapping in
-an `<ErrorBoundary/>` will appear again.
+如果修复了错误，错误消息将消失，你用 `<ErrorBoundary/>` 包装的内容将再次出现。
 
-```admonish sandbox title="Live example" collapsible=true
+```admonish sandbox title="实时示例" collapsible=true
 
-[Click to open CodeSandbox.](https://codesandbox.io/p/sandbox/7-errors-0-5-5mptv9?file=%2Fsrc%2Fmain.rs%3A1%2C1)
+[点击打开 CodeSandbox.](https://codesandbox.io/p/sandbox/7-errors-0-5-5mptv9?file=%2Fsrc%2Fmain.rs%3A1%2C1)
 
 <noscript>
-  Please enable JavaScript to view examples.
+  请启用 JavaScript 来查看示例。
 </noscript>
 
 <template>
@@ -133,7 +115,7 @@ an `<ErrorBoundary/>` will appear again.
 ```
 
 <details>
-<summary>CodeSandbox Source</summary>
+<summary>CodeSandbox 源码</summary>
 
 ```rust
 use leptos::*;
@@ -142,7 +124,7 @@ use leptos::*;
 fn App() -> impl IntoView {
     let (value, set_value) = create_signal(Ok(0));
 
-    // when input changes, try to parse a number from the input
+    // 当输入发生变化时，尝试从输入中解析一个数字
     let on_input = move |ev| set_value(event_target_value(&ev).parse::<i32>());
 
     view! {
@@ -150,16 +132,16 @@ fn App() -> impl IntoView {
         <label>
             "Type a number (or something that's not a number!)"
             <input type="number" on:input=on_input/>
-            // If an `Err(_) had been rendered inside the <ErrorBoundary/>,
-            // the fallback will be displayed. Otherwise, the children of the
-            // <ErrorBoundary/> will be displayed.
+            // 如果在 <ErrorBoundary/> 内部渲染了 `Err(_)`,
+            // 将显示 fallback。否则，将显示
+            // <ErrorBoundary/> 的子级。
             <ErrorBoundary
-                // the fallback receives a signal containing current errors
+                // fallback 接收一个包含当前错误的信号
                 fallback=|errors| view! {
                     <div class="error">
                         <p>"Not a number! Errors: "</p>
-                        // we can render a list of errors
-                        // as strings, if we'd like
+                        // 我们可以将错误列表渲染为
+                        // 字符串，如果我们愿意的话
                         <ul>
                             {move || errors.get()
                                 .into_iter()
@@ -172,11 +154,10 @@ fn App() -> impl IntoView {
             >
                 <p>
                     "You entered "
-                    // because `value` is `Result<i32, _>`,
-                    // it will render the `i32` if it is `Ok`,
-                    // and render nothing and trigger the error boundary
-                    // if it is `Err`. It's a signal, so this will dynamically
-                    // update when `value` changes
+                    // 因为 `value` 是 `Result<i32, _>`,
+                    // 如果它是 `Ok`，它将渲染 `i32`，
+                    // 如果它是 `Err`，它将渲染 nothing 并触发错误边界。
+                    // 它是一个信号，因此当 `value` 发生变化时，它将动态更新
                     <strong>{value}</strong>
                 </p>
             </ErrorBoundary>
