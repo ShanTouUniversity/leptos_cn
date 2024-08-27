@@ -11,7 +11,7 @@
     - [组件和 Props](./cn/view/03_components.md)
     - [迭代](./cn/view/04_iteration.md)
     - [迭代更复杂的数据](./cn/view/04b_iteration.md)
-    - [Forms and Inputs](./cn/view/05_forms.md)
+    - [表单和输入](./cn/view/05_forms.md)
     - [Control Flow](./cn/view/06_control_flow.md)
     - [Error Handling](./cn/view/07_errors.md)
     - [Parent-Child Communication](./cn/view/08_parent_child.md)
