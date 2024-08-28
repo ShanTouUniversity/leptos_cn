@@ -1,8 +1,6 @@
-# Component Children
+# 组件子级
 
-It’s pretty common to want to pass children into a component, just as you can pass
-children into an HTML element. For example, imagine I have a `<FancyForm/>` component
-that enhances an HTML `<form>`. I need some way to pass all its inputs.
+就像你可以将子级传递给 HTML 元素一样，将子级传递给组件也是很常见的。例如，假设我有一个 `<FancyForm/>` 组件，它增强了 HTML `<form>`。我需要某种方法来传递它的所有输入。
 
 ```rust
 view! {
@@ -18,39 +16,37 @@ view! {
 }
 ```
 
-How can you do this in Leptos? There are basically two ways to pass components to
-other components:
+在 Leptos 中，你如何做到这一点？基本上有两种方法可以将组件传递给其他组件：
 
-1. **render props**: properties that are functions that return a view
-2. the **`children`** prop: a special component property that includes anything
-   you pass as a child to the component.
+1. **渲染 props**：返回视图的函数属性
+2. **`children`** prop：一个特殊的组件属性，包含你作为子级传递给组件的任何内容。
 
-In fact, you’ve already seen these both in action in the [`<Show/>`](/view/06_control_flow.html#show) component:
+事实上，你已经在 [`<Show/>`](/view/06_control_flow.html#show) 组件中看到了这两者的实际应用：
 
 ```rust
 view! {
   <Show
-    // `when` is a normal prop
+    // `when` 是一个普通的 prop
     when=move || value() > 5
-    // `fallback` is a "render prop": a function that returns a view
+    // `fallback` 是一个“渲染 prop”：一个返回视图的函数
     fallback=|| view! { <Small/> }
   >
-    // `<Big/>` (and anything else here)
-    // will be given to the `children` prop
+    // `<Big/>`（以及这里的任何其他内容）
+    // 将被赋予 `children` prop
     <Big/>
   </Show>
 }
 ```
 
-Let’s define a component that takes some children and a render prop.
+让我们定义一个接受一些子级和一个渲染 prop 的组件。
 
 ```rust
 #[component]
 pub fn TakesChildren<F, IV>(
-    /// Takes a function (type F) that returns anything that can be
-    /// converted into a View (type IV)
+    /// 接受一个函数（类型 F），该函数返回任何可以
+    /// 转换为视图（类型 IV）的内容
     render_prop: F,
-    /// `children` takes the `Children` type
+    /// `children` 接受 `Children` 类型
     children: Children,
 ) -> impl IntoView
 where
@@ -67,37 +63,32 @@ where
 }
 ```
 
-`render_prop` and `children` are both functions, so we can call them to generate
-the appropriate views. `children`, in particular, is an alias for
-`Box<dyn FnOnce() -> Fragment>`. (Aren't you glad we named it `Children` instead?)
+`render_prop` 和 `children` 都是函数，所以我们可以调用它们来生成相应的视图。`children`，特别是，是 `Box<dyn FnOnce() -> Fragment>` 的别名。（你不高兴我们将其命名为 `Children` 而不是那个吗？）
 
-> If you need a `Fn` or `FnMut` here because you need to call `children` more than once,
-> we also provide `ChildrenFn` and `ChildrenMut` aliases.
+> 如果你在这里需要一个 `Fn` 或 `FnMut`，因为你需要多次调用 `children`，我们还提供了 `ChildrenFn` 和 `ChildrenMut` 别名。
 
-We can use the component like this:
+我们可以像这样使用组件：
 
 ```rust
 view! {
     <TakesChildren render_prop=|| view! { <p>"Hi, there!"</p> }>
-        // these get passed to `children`
+        // 这些被传递给 `children`
         "Some text"
         <span>"A span"</span>
     </TakesChildren>
 }
 ```
 
-## Manipulating Children
+## 操作子级
 
-The [`Fragment`](https://docs.rs/leptos/latest/leptos/struct.Fragment.html) type is
-basically a way of wrapping a `Vec<View>`. You can insert it anywhere into your view.
+[`Fragment`](https://docs.rs/leptos/latest/leptos/struct.Fragment.html) 类型基本上是一种包装 `Vec<View>` 的方法。你可以将其插入到视图中的任何位置。
 
-But you can also access those inner views directly to manipulate them. For example, here’s
-a component that takes its children and turns them into an unordered list.
+但是你也可以直接访问这些内部视图来操作它们。例如，这里有一个组件，它接受它的子级并将它们转换成一个无序列表。
 
 ```rust
 #[component]
 pub fn WrapsChildren(children: Children) -> impl IntoView {
-    // Fragment has `nodes` field that contains a Vec<View>
+    // Fragment 有一个 `nodes` 字段，其中包含一个 Vec<View>
     let children = children()
         .nodes
         .into_iter()
@@ -110,7 +101,7 @@ pub fn WrapsChildren(children: Children) -> impl IntoView {
 }
 ```
 
-Calling it like this will create a list:
+像这样调用它将创建一个列表：
 
 ```rust
 view! {
@@ -122,12 +113,12 @@ view! {
 }
 ```
 
-```admonish sandbox title="Live example" collapsible=true
+```admonish sandbox title="实时示例" collapsible=true
 
-[Click to open CodeSandbox.](https://codesandbox.io/p/sandbox/9-component-children-0-5-m4jwhp?file=%2Fsrc%2Fmain.rs%3A1%2C1)
+[点击打开 CodeSandbox.](https://codesandbox.io/p/sandbox/9-component-children-0-5-m4jwhp?file=%2Fsrc%2Fmain.rs%3A1%2C1)
 
 <noscript>
-  Please enable JavaScript to view examples.
+  请启用 JavaScript 来查看示例。
 </noscript>
 
 <template>
@@ -137,26 +128,26 @@ view! {
 ```
 
 <details>
-<summary>CodeSandbox Source</summary>
+<summary>CodeSandbox 源码</summary>
 
 ```rust
 use leptos::*;
 
-// Often, you want to pass some kind of child view to another
-// component. There are two basic patterns for doing this:
-// - "render props": creating a component prop that takes a function
-//   that creates a view
-// - the `children` prop: a special property that contains content
-//   passed as the children of a component in your view, not as a
-//   property
+// 通常，你希望将某种子视图传递给另一个
+// 组件。有两种基本模式可以做到这一点：
+// - “渲染 props”：创建一个接受函数的组件 prop，
+//   该函数创建一个视图
+// - `children` prop：一个特殊的属性，其中包含
+//   在你的视图中作为组件的子级传递的内容，而不是作为
+//   属性传递的内容
 
 #[component]
 pub fn App() -> impl IntoView {
     let (items, set_items) = create_signal(vec![0, 1, 2]);
     let render_prop = move || {
-        // items.with(...) reacts to the value without cloning
-        // by applying a function. Here, we pass the `len` method
-        // on a `Vec<_>` directly
+        // items.with(...) 在不克隆的情况下对值做出反应
+        // 通过应用一个函数。在这里，我们直接传递 `len` 方法
+        // 在 `Vec<_>` 上
         let len = move || items.with(Vec::len);
         view! {
             <p>"Length: " {len}</p>
@@ -164,20 +155,20 @@ pub fn App() -> impl IntoView {
     };
 
     view! {
-        // This component just displays the two kinds of children,
-        // embedding them in some other markup
+        // 此组件仅显示两种类型的子级，
+        // 将它们嵌入到其他一些标记中
         <TakesChildren
-            // for component props, you can shorthand
+            // 对于组件 props，你可以简写
             // `render_prop=render_prop` => `render_prop`
-            // (this doesn't work for HTML element attributes)
+            // （这不适用于 HTML 元素属性）
             render_prop
         >
-            // these look just like the children of an HTML element
+            // 这些看起来就像 HTML 元素的子级
             <p>"Here's a child."</p>
             <p>"Here's another child."</p>
         </TakesChildren>
         <hr/>
-        // This component actually iterates over and wraps the children
+        // 此组件实际上会迭代并包装子级
         <WrapsChildren>
             <p>"Here's a child."</p>
             <p>"Here's another child."</p>
@@ -185,15 +176,15 @@ pub fn App() -> impl IntoView {
     }
 }
 
-/// Displays a `render_prop` and some children within markup.
+/// 在标记内显示 `render_prop` 和一些子级。
 #[component]
 pub fn TakesChildren<F, IV>(
-    /// Takes a function (type F) that returns anything that can be
-    /// converted into a View (type IV)
+    /// 接受一个函数（类型 F），该函数返回任何可以
+    /// 转换为视图（类型 IV）的内容
     render_prop: F,
-    /// `children` takes the `Children` type
-    /// this is an alias for `Box<dyn FnOnce() -> Fragment>`
-    /// ... aren't you glad we named it `Children` instead?
+    /// `children` 接受 `Children` 类型
+    /// 这是 `Box<dyn FnOnce() -> Fragment>` 的别名
+    /// ... 你不高兴我们将其命名为 `Children` 而不是那个吗？
     children: Children,
 ) -> impl IntoView
 where
@@ -210,13 +201,13 @@ where
     }
 }
 
-/// Wraps each child in an `<li>` and embeds them in a `<ul>`.
+/// 将每个子级包装在 `<li>` 中并将它们嵌入到 `<ul>` 中。
 #[component]
 pub fn WrapsChildren(children: Children) -> impl IntoView {
-    // children() returns a `Fragment`, which has a
-    // `nodes` field that contains a Vec<View>
-    // this means we can iterate over the children
-    // to create something new!
+    // children() 返回一个 `Fragment`，它有一个
+    // `nodes` 字段，其中包含一个 Vec<View>
+    // 这意味着我们可以迭代子级
+    // 来创建新的东西！
     let children = children()
         .nodes
         .into_iter()
@@ -225,7 +216,7 @@ pub fn WrapsChildren(children: Children) -> impl IntoView {
 
     view! {
         <h1><code>"<WrapsChildren/>"</code></h1>
-        // wrap our wrapped children in a UL
+        // 将我们包装的子级包装在 UL 中
         <ul>{children}</ul>
     }
 }
