@@ -1,5 +1,5 @@
-# Reactivity
+# 响应式
 
-Leptos is built on top of a fine-grained reactive system, designed to run expensive side effects (like rendering something in a browser, or making a network request) as infrequently as possible in response to change, reactive values.
+Leptos 建立在一个细粒度的响应式系统之上，该系统旨在响应更改和响应式值，尽可能少地运行昂贵的副作用（例如在浏览器中渲染某些内容或发出网络请求）。
 
-So far we’ve seen signals in action. These chapters will go into a bit more depth, and look at effects, which are the other half of the story.
+到目前为止，我们已经看到了信号的实际应用。这些章节将更深入地介绍，并看一下效果，这是故事的另一半。

@@ -1,17 +1,17 @@
-# Working with Signals
+# 使用信号
 
-So far we’ve used some simple examples of [`create_signal`](https://docs.rs/leptos/latest/leptos/fn.create_signal.html), which returns a [`ReadSignal`](https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html) getter and a [`WriteSignal`](https://docs.rs/leptos/latest/leptos/struct.WriteSignal.html) setter.
+到目前为止，我们已经使用了一些 [`create_signal`](https://docs.rs/leptos/latest/leptos/fn.create_signal.html) 的简单示例，它返回一个 [`ReadSignal`](https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html) getter 和一个 [`WriteSignal`](https://docs.rs/leptos/latest/leptos/struct.WriteSignal.html) setter。
 
-## Getting and Setting
+## 获取和设置
 
-There are four basic signal operations:
+有四种基本的信号操作：
 
-1. [`.get()`](https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html#impl-SignalGet%3CT%3E-for-ReadSignal%3CT%3E) clones the current value of the signal and tracks any future changes to the value reactively.
-2. [`.with()`](https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html#impl-SignalWith%3CT%3E-for-ReadSignal%3CT%3E) takes a function, which receives the current value of the signal by reference (`&T`), and tracks any future changes.
-3. [`.set()`](https://docs.rs/leptos/latest/leptos/struct.WriteSignal.html#impl-SignalSet%3CT%3E-for-WriteSignal%3CT%3E) replaces the current value of the signal and notifies any subscribers that they need to update.
-4. [`.update()`](https://docs.rs/leptos/latest/leptos/struct.WriteSignal.html#impl-SignalUpdate%3CT%3E-for-WriteSignal%3CT%3E) takes a function, which receives a mutable reference to the current value of the signal (`&mut T`), and notifies any subscribers that they need to update. (`.update()` doesn’t return the value returned by the closure, but you can use [`.try_update()`](https://docs.rs/leptos/latest/leptos/trait.SignalUpdate.html#tymethod.try_update) if you need to; for example, if you’re removing an item from a `Vec<_>` and want the removed item.)
+1. [`.get()`](https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html#impl-SignalGet%3CT%3E-for-ReadSignal%3CT%3E) 克隆信号的当前值，并以响应式方式跟踪对该值的任何未来更改。
+2. [`.with()`](https://docs.rs/leptos/latest/leptos/struct.ReadSignal.html#impl-SignalWith%3CT%3E-for-ReadSignal%3CT%3E) 接受一个函数，该函数通过引用 (`&T`) 接收信号的当前值，并跟踪任何未来更改。
+3. [`.set()`](https://docs.rs/leptos/latest/leptos/struct.WriteSignal.html#impl-SignalSet%3CT%3E-for-WriteSignal%3CT%3E) 替换信号的当前值，并通知任何订阅者他们需要更新。
+4. [`.update()`](https://docs.rs/leptos/latest/leptos/struct.WriteSignal.html#impl-SignalUpdate%3CT%3E-for-WriteSignal%3CT%3E) 接受一个函数，该函数接收信号当前值的 mutable 引用 (`&mut T`)，并通知任何订阅者他们需要更新。（`.update()` 不返回闭包返回的值，但如果需要，你可以使用 [`.try_update()`](https://docs.rs/leptos/latest/leptos/trait.SignalUpdate.html#tymethod.try_update)；例如，如果你要从 `Vec<_>` 中删除一个项目并想要这个被删除的项目。）
 
-Calling a `ReadSignal` as a function is syntax sugar for `.get()`. Calling a `WriteSignal` as a function is syntax sugar for `.set()`. So
+将 `ReadSignal` 作为函数调用是 `.get()` 的语法糖。将 `WriteSignal` 作为函数调用是 `.set()` 的语法糖。所以
 
 ```rust
 let (count, set_count) = create_signal(0);
@@ -19,7 +19,7 @@ set_count(1);
 logging::log!(count());
 ```
 
-is the same as
+与以下代码相同
 
 ```rust
 let (count, set_count) = create_signal(0);
@@ -27,13 +27,13 @@ set_count.set(1);
 logging::log!(count.get());
 ```
 
-You might notice that `.get()` and `.set()` can be implemented in terms of `.with()` and `.update()`. In other words, `count.get()` is identical with `count.with(|n| n.clone())`, and `count.set(1)` is implemented by doing `count.update(|n| *n = 1)`.
+你可能会注意到 `.get()` 和 `.set()` 可以用 `.with()` 和 `.update()` 来实现。换句话说，`count.get()` 与 `count.with(|n| n.clone())` 相同，而 `count.set(1)` 是通过 `count.update(|n| *n = 1)` 实现的。
 
-But of course, `.get()` and `.set()` (or the plain function-call forms!) are much nicer syntax.
+但是当然，`.get()` 和 `.set()`（或者普通的函数调用形式！）是更好的语法。
 
-However, there are some very good use cases for `.with()` and `.update()`.
+然而，`.with()` 和 `.update()` 有一些非常好的用例。
 
-For example, consider a signal that holds a `Vec<String>`.
+例如，考虑一个保存 `Vec<String>` 的信号。
 
 ```rust
 let (names, set_names) = create_signal(Vec::new());
@@ -42,9 +42,9 @@ if names().is_empty() {
 }
 ```
 
-In terms of logic, this is simple enough, but it’s hiding some significant inefficiencies. Remember that `names().is_empty()` is sugar for `names.get().is_empty()`, which clones the value (it’s `names.with(|n| n.clone()).is_empty()`). This means we clone the whole `Vec<String>`, run `is_empty()`, and then immediately throw away the clone.
+从逻辑上讲，这很简单，但它隐藏了一些明显的低效之处。记住，`names().is_empty()` 是 `names.get().is_empty()` 的语法糖，它克隆了值（它是 `names.with(|n| n.clone()).is_empty()`）。这意味着我们克隆了整个 `Vec<String>`，运行 `is_empty()`，然后立即丢弃克隆。
 
-Likewise, `set_names` replaces the value with a whole new `Vec<_>`. This is fine, but we might as well just mutate the original `Vec<_>` in place.
+同样，`set_names` 用一个全新的 `Vec<_> `替换了该值。这很好，但我们不妨直接原地修改原始的 `Vec<_>`。
 
 ```rust
 let (names, set_names) = create_signal(Vec::new());
@@ -53,9 +53,9 @@ if names.with(|names| names.is_empty()) {
 }
 ```
 
-Now our function simply takes `names` by reference to run `is_empty()`, avoiding that clone.
+现在我们的函数只是通过引用获取 `names` 来运行 `is_empty()`，避免了克隆。
 
-And if you have Clippy on, or if you have sharp eyes, you may notice we can make this even neater:
+如果你打开了 Clippy，或者你目光敏锐，你可能会注意到我们可以让它更简洁：
 
 ```rust
 if names.with(Vec::is_empty) {
@@ -63,9 +63,9 @@ if names.with(Vec::is_empty) {
 }
 ```
 
-After all, `.with()` simply takes a function that takes the value by reference. Since `Vec::is_empty` takes `&self`, we can pass it in directly and avoid the unnecessary closure.
+毕竟，`.with()` 只是接受一个通过引用获取值的函数。因为 `Vec::is_empty` 接受 `&self`，我们可以直接传入它，避免不必要的闭包。
 
-There are some helper macros to make using `.with()` and `.update()` easier to use, especially when using multiple signals.
+有一些辅助宏可以使 `.with()` 和 `.update()` 更易于使用，尤其是在使用多个信号时。
 
 ```rust
 let (first, _) = create_signal("Bob".to_string());
@@ -73,7 +73,7 @@ let (middle, _) = create_signal("J.".to_string());
 let (last, _) = create_signal("Smith".to_string());
 ```
 
-If you wanted to concatenate these 3 signals together without unnecessary cloning, you would have to write something like:
+如果你想将这 3 个信号连接在一起而不需要不必要的克隆，你必须编写如下内容：
 
 ```rust
 let name = move || {
@@ -83,59 +83,59 @@ let name = move || {
 };
 ```
 
-Which is very long and annoying to write.
+这写起来很长很烦人。
 
-Instead, you can use the `with!` macro to get references to all the signals at the same time.
+相反，你可以使用 `with!` 宏同时获取所有信号的引用。
 
 ```rust
 let name = move || with!(|first, middle, last| format!("{first} {middle} {last}"));
 ```
 
-This expands to the same thing as above. Take a look at the [`with!`](https://docs.rs/leptos/latest/leptos/macro.with.html) docs for more info, and the corresponding macros [`update!`](https://docs.rs/leptos/latest/leptos/macro.update.html), [`with_value!`](https://docs.rs/leptos/latest/leptos/macro.with_value.html) and [`update_value!`](https://docs.rs/leptos/latest/leptos/macro.update_value.html).
+这与上面的展开相同。查看 [`with!`](https://docs.rs/leptos/latest/leptos/macro.with.html) 文档了解更多信息，以及相应的宏 [`update!`](https://docs.rs/leptos/latest/leptos/macro.update.html)、[`with_value!`](https://docs.rs/leptos/latest/leptos/macro.with_value.html) 和 [`update_value!`](https://docs.rs/leptos/latest/leptos/macro.update_value.html)。
 
-## Making signals depend on each other
+## 使信号相互依赖
 
-Often people ask about situations in which some signal needs to change based on some other signal’s value. There are three good ways to do this, and one that’s less than ideal but okay under controlled circumstances.
+人们经常会问一些信号需要根据其他信号的值而改变的情况。有三种好方法可以做到这一点，还有一种不太理想但可以在可控情况下使用的方法。
 
-### Good Options
+### 好的选择
 
-**1) B is a function of A.** Create a signal for A and a derived signal or memo for B.
+**1）B 是 A 的函数。**为 A 创建一个信号，为 B 创建一个派生信号或 memo 。
 
 ```rust
 let (count, set_count) = create_signal(1); // A
-let derived_signal_double_count = move || count() * 2; // B is a function of A
-let memoized_double_count = create_memo(move |_| count() * 2); // B is a function of A  
+let derived_signal_double_count = move || count() * 2; // B 是 A 的函数
+let memoized_double_count = create_memo(move |_| count() * 2); // B 是 A 的函数  
 ```
 
-> For guidance on whether to use a derived signal or a memo, see the docs for [`create_memo`](https://docs.rs/leptos/latest/leptos/fn.create_memo.html)
+> 有关何时使用派生信号或 memo 的指导，请参阅 [`create_memo`](https://docs.rs/leptos/latest/leptos/fn.create_memo.html) 的文档
 
-**2) C is a function of A and some other thing B.** Create signals for A and B and a derived signal or memo for C.
+**2）C 是 A 和其他事物 B 的函数。**为 A 和 B 创建信号，为 C 创建派生信号或  memo 。
 
 ```rust
 let (first_name, set_first_name) = create_signal("Bridget".to_string()); // A
 let (last_name, set_last_name) = create_signal("Jones".to_string()); // B
-let full_name = move || with!(|first_name, last_name| format!("{first_name} {last_name}")); // C is a function of A and B
+let full_name = move || with!(|first_name, last_name| format!("{first_name} {last_name}")); // C 是 A 和 B 的函数
 ```
 
-**3) A and B are independent signals, but sometimes updated at the same time.** When you make the call to update A, make a separate call to update B.
+**3）A 和 B 是独立的信号，但有时同时更新。**当你调用更新 A 时，进行单独的调用来更新 B。
 
 ```rust
 let (age, set_age) = create_signal(32); // A
 let (favorite_number, set_favorite_number) = create_signal(42); // B
-// use this to handle a click on a `Clear` button
+// 使用它来处理对 `Clear` 按钮的点击
 let clear_handler = move |_| {
-  // update both A and B
+  // 同时更新 A 和 B
   set_age(0);
   set_favorite_number(0);
 };
 ```
 
-### If you really must...
+### 如果你真的必须...
 
-**4) Create an effect to write to B whenever A changes.** This is officially discouraged, for several reasons:
-a) It will always be less efficient, as it means every time A updates you do two full trips through the reactive process. (You set A, which causes the effect to run, as well as any other effects that depend on A. Then you set B, which causes any effects that depend on B to run.)
-b) It increases your chances of accidentally creating things like infinite loops or over-re-running effects. This is the kind of ping-ponging, reactive spaghetti code that was common in the early 2010s and that we try to avoid with things like read-write segregation and discouraging writing to signals from effects.
+**4) 创建一个效果，每当 A 发生变化时写入 B。**这在官方上是不鼓励的，原因有以下几点：
+a) 它总是效率较低，因为这意味着每次 A 更新时，你都要完整地执行两次响应式过程。（你设置 A，这会导致效果运行，以及任何其他依赖于 A 的效果。然后你设置 B，这会导致任何依赖于 B 的效果运行。）
+b) 它增加了你意外创建无限循环或过度运行效果的可能性。这是一种乒乓球式的、响应式意大利面条式代码，在 2010 年代初期很常见，我们试图通过读写隔离和不鼓励从效果中写入信号来避免这种情况。
 
-In most situations, it’s best to rewrite things such that there’s a clear, top-down data flow based on derived signals or memos. But this isn’t the end of the world.
+在大多数情况下，最好重写代码，使其基于派生信号或 memo 具有清晰的自上而下的数据流。但这并不是世界末日。
 
-> I’m intentionally not providing an example here. Read the [`create_effect`](https://docs.rs/leptos/latest/leptos/fn.create_effect.html) docs to figure out how this would work.
+> 我故意在这里没有提供示例。阅读 [`create_effect`](https://docs.rs/leptos/latest/leptos/fn.create_effect.html) 文档以了解它是如何工作的。

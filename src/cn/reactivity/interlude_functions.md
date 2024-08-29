@@ -1,14 +1,12 @@
-# Interlude: Reactivity and Functions
+# 插曲：响应式和函数
 
-One of our core contributors said to me recently: “I never used closures this often
-until I started using Leptos.” And it’s true. Closures are at the heart of any Leptos
-application. It sometimes looks a little silly:
+我们的一位核心贡献者最近对我说：“在开始使用 Leptos 之前，我从来没有这么频繁地使用闭包。” 这是真的。闭包是任何 Leptos 应用程序的核心。它有时看起来有点傻：
 
 ```rust
-// a signal holds a value, and can be updated
+// 信号保存一个值，并且可以更新
 let (count, set_count) = create_signal(0);
 
-// a derived signal is a function that accesses other signals
+// 派生信号是一个访问其他信号的函数
 let double_count = move || count() * 2;
 let count_is_odd = move || count() & 1 == 1;
 let text = move || if count_is_odd() {
@@ -17,8 +15,8 @@ let text = move || if count_is_odd() {
     "even"
 };
 
-// an effect automatically tracks the signals it depends on
-// and reruns when they change
+// 效果会自动跟踪它所依赖的信号
+// 并在它们发生变化时重新运行
 create_effect(move |_| {
     logging::log!("text = {}", text());
 });
@@ -28,28 +26,28 @@ view! {
 }
 ```
 
-Closures, closures everywhere!
+到处都是闭包！
 
-But why?
+但为什么？
 
-## Functions and UI Frameworks
+## 函数和 UI 框架
 
-Functions are at the heart of every UI framework. And this makes perfect sense. Creating a user interface is basically divided into two phases:
+函数是每个 UI 框架的核心。这很有道理。创建用户界面基本上分为两个阶段：
 
-1. initial rendering
-2. updates
+1. 初始渲染
+2. 更新
 
-In a web framework, the framework does some kind of initial rendering. Then it hands control back over to the browser. When certain events fire (like a mouse click) or asynchronous tasks finish (like an HTTP request finishing), the browser wakes the framework back up to update something. The framework runs some kind of code to update your user interface, and goes back asleep until the browser wakes it up again.
+在 Web 框架中，框架进行某种初始渲染。然后它将控制权交还给浏览器。当某些事件触发（如鼠标单击）或异步任务完成（如 HTTP 请求完成）时，浏览器会唤醒框架来更新某些内容。框架运行某种代码来更新你的用户界面，然后再次休眠，直到浏览器再次唤醒它。
 
-The key phrase here is “runs some kind of code.” The natural way to “run some kind of code” at an arbitrary point in time—in Rust or in any other programming language—is to call a function. And in fact every UI framework is based on rerunning some kind of function over and over:
+这里的关键词是“运行某种代码”。在任意时间点“运行某种代码”的自然方式——在 Rust 或任何其他编程语言中——是调用函数。事实上，每个 UI 框架都是基于一遍又一遍地重新运行某种函数：
 
-1. virtual DOM (VDOM) frameworks like React, Yew, or Dioxus rerun a component or render function over and over, to generate a virtual DOM tree that can be reconciled with the previous result to patch the DOM
-2. compiled frameworks like Angular and Svelte divide your component templates into “create” and “update” functions, rerunning the update function when they detect a change to the component’s state
-3. in fine-grained reactive frameworks like SolidJS, Sycamore, or Leptos, _you_ define the functions that rerun
+1. 像 React、Yew 或 Dioxus 这样的虚拟 DOM（VDOM）框架一遍又一遍地重新运行组件或渲染函数，以生成一个虚拟 DOM 树，该树可以与之前的结果进行协调以修补 DOM
+2. 像 Angular 和 Svelte 这样的编译框架将你的组件模板分为“创建”和“更新”函数，当它们检测到组件状态发生变化时，会重新运行更新函数
+3. 在像 SolidJS、Sycamore 或 Leptos 这样的细粒度响应式框架中，*你* 定义了重新运行的函数
 
-That’s what all our components are doing.
+这就是我们所有组件正在做的事情。
 
-Take our typical `<SimpleCounter/>` example in its simplest form:
+以我们典型的 `<SimpleCounter/>` 示例的最简单形式为例：
 
 ```rust
 #[component]
@@ -66,11 +64,11 @@ pub fn SimpleCounter() -> impl IntoView {
 }
 ```
 
-The `SimpleCounter` function itself runs once. The `value` signal is created once. The framework hands off the `increment` function to the browser as an event listener. When you click the button, the browser calls `increment`, which updates `value` via `set_value`. And that updates the single text node represented in our view by `{value}`.
+`SimpleCounter` 函数本身只运行一次。`value` 信号只创建一次。框架将 `increment` 函数作为事件监听器传递给浏览器。当你点击按钮时，浏览器会调用 `increment`，它通过 `set_value` 更新 `value`。这会更新在我们的视图中由 `{value}` 表示的单个文本节点。
 
-Closures are key to reactivity. They provide the framework with the ability to rerun the smallest possible unit of your application in response to a change.
+闭包是响应式的关键。它们为框架提供了响应更改重新运行应用程序中最小可能单元的能力。
 
-So remember two things:
+所以请记住两件事：
 
-1. Your component function is a setup function, not a render function: it only runs once.
-2. For values in your view template to be reactive, they must be functions: either signals (which implement the `Fn` traits) or closures.
+1. 你的组件函数是一个设置函数，而不是一个渲染函数：它只运行一次。
+2. 为了使你的视图模板中的值具有响应性，它们必须是函数：要么是信号（实现 `Fn` 特征），要么是闭包。
