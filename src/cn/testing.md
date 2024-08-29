@@ -1,29 +1,25 @@
-# Testing Your Components
+# 测试你的组件
 
-Testing user interfaces can be relatively tricky, but really important. This article
-will discuss a couple principles and approaches for testing a Leptos app.
+测试用户界面可能相对棘手，但确实很重要。本文将讨论测试 Leptos 应用程序的一些原则和方法。
 
-## 1. Test business logic with ordinary Rust tests
+## 1. 使用普通的 Rust 测试来测试业务逻辑
 
-In many cases, it makes sense to pull the logic out of your components and test
-it separately. For some simple components, there’s no particular logic to test, but
-for many it’s worth using a testable wrapping type and implementing the logic in
-ordinary Rust `impl` blocks.
+在许多情况下，将逻辑从你的组件中提取出来并单独测试是有意义的。对于一些简单的组件，没有特别的逻辑需要测试，但对于许多组件来说，值得使用一个可测试的包装类型，并在普通的 Rust `impl` 块中实现逻辑。
 
-For example, instead of embedding logic in a component directly like this:
+例如，与其像这样直接在组件中嵌入逻辑：
 
 ```rust
 #[component]
 pub fn TodoApp() -> impl IntoView {
     let (todos, set_todos) = create_signal(vec![Todo { /* ... */ }]);
-    // ⚠️ this is hard to test because it's embedded in the component
+    // ⚠️ 这很难测试，因为它嵌入在组件中
     let num_remaining = move || todos.with(|todos| {
         todos.iter().filter(|todo| !todo.completed).sum()
     });
 }
 ```
 
-You could pull that logic out into a separate data structure and test it:
+你可以将该逻辑提取到一个单独的数据结构中并对其进行测试：
 
 ```rust
 pub struct Todos(Vec<Todo>);
@@ -45,25 +41,24 @@ mod tests {
 #[component]
 pub fn TodoApp() -> impl IntoView {
     let (todos, set_todos) = create_signal(Todos(vec![Todo { /* ... */ }]));
-    // ✅ this has a test associated with it
+    // ✅ 这有一个与之关联的测试
     let num_remaining = move || todos.with(Todos::num_remaining);
 }
 ```
 
-In general, the less of your logic is wrapped into your components themselves, the
-more idiomatic your code will feel and the easier it will be to test.
+一般来说，你的组件本身包含的逻辑越少，你的代码就越容易理解，也越容易测试。
 
-## 2. Test components with end-to-end (`e2e`) testing
+## 2. 使用端到端（`e2e`）测试来测试组件
 
-Our [`examples`](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples) directory has several examples with extensive end-to-end testing, using different testing tools.
+我们的 [`examples`](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples) 目录中有几个示例，其中包含使用不同测试工具进行的广泛的端到端测试。
 
-The easiest way to see how to use these is to take a look at the test examples themselves:
+了解如何使用这些示例的最简单方法是查看测试示例本身：
 
-### `wasm-bindgen-test` with [`counter`](https://github.com/leptos-rs/leptos/blob/main/examples/counter/tests/web.rs)
+### 使用 [`counter`](https://github.com/leptos-rs/leptos/blob/main/examples/counter/tests/web.rs) 的 `wasm-bindgen-test`
 
-This is a fairly simple manual testing setup that uses the [`wasm-pack test`](https://rustwasm.github.io/wasm-pack/book/commands/test.html) command.
+这是一个相当简单的手动测试设置，它使用 [`wasm-pack test`](https://rustwasm.github.io/wasm-pack/book/commands/test.html) 命令。
 
-#### Sample Test
+#### 示例测试
 
 ```rust
 #[wasm_bindgen_test]
@@ -88,12 +83,12 @@ fn clear() {
 
 assert_eq!(
     div.outer_html(),
-    // here we spawn a mini reactive system to render the test case
+    // 这里我们生成一个微型响应式系统来渲染测试用例
     run_scope(create_runtime(), || {
-        // it's as if we're creating it with a value of 0, right?
+        // 就好像我们用值 0 创建它一样，对吧？
         let (value, set_value) = create_signal(0);
 
-        // we can remove the event listeners because they're not rendered to HTML
+        // 我们可以删除事件监听器，因为它们不会渲染到 HTML 中
         view! {
             <div>
                 <button>"Clear"</button>
@@ -102,19 +97,18 @@ assert_eq!(
                 <button>"+1"</button>
             </div>
         }
-        // the view returned an HtmlElement<Div>, which is a smart pointer for
-        // a DOM element. So we can still just call .outer_html()
+        // 返回的视图是 HtmlElement<Div>，它是 DOM 元素的智能指针。所以我们仍然可以调用 .outer_html()
         .outer_html()
     })
 );
 }
 ```
 
-### [`wasm-bindgen-test` with `counters`](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples/counters/tests/web.rs)
+### [`wasm-bindgen-test` 和 `counters`](https://github.com/leptos-rs/leptos/tree/leptos_0.6/examples/counters/tests/web.rs)
 
-This more developed test suite uses a system of fixtures to refactor the manual DOM manipulation of the `counter` tests and easily test a wide range of cases.
+这个更发达的测试套件使用了一个 fixtures 系统来重构 `counter` 测试的手动 DOM 操作，并轻松地测试各种情况。
 
-#### Sample Test
+#### 示例测试
 
 ```rust
 use super::*;
@@ -123,25 +117,25 @@ use pretty_assertions::assert_eq;
 
 #[wasm_bindgen_test]
 fn should_increase_the_total_count() {
-    // Given
+    // 给定
     ui::view_counters();
     ui::add_counter();
 
-    // When
+    // 当
     ui::increment_counter(1);
     ui::increment_counter(1);
     ui::increment_counter(1);
 
-    // Then
+    // 那么
     assert_eq!(ui::total(), 3);
 }
 ```
 
-### [Playwright with `counters`](https://github.com/leptos-rs/leptos/tree/main/examples/counters/e2e)
+### [Playwright 和 `counters`](https://github.com/leptos-rs/leptos/tree/main/examples/counters/e2e)
 
-These tests use the common JavaScript testing tool Playwright to run end-to-end tests on the same example, using a library and testing approach familiar to many who have done frontend development before.
+这些测试使用常见的 JavaScript 测试工具 Playwright 在同一个例子上运行端到端测试，使用许多以前做过前端开发的人熟悉的库和测试方法。
 
-#### Sample Test
+#### 示例测试
 
 ```js
 import { test, expect } from "@playwright/test";
@@ -162,9 +156,9 @@ test.describe("Increment Count", () => {
 });
 ```
 
-### [Gherkin/Cucumber Tests with `todo_app_sqlite`](https://github.com/leptos-rs/leptos/blob/leptos_0.6/examples/todo_app_sqlite/e2e/README.md)
+### [使用 `todo_app_sqlite` 的 Gherkin/Cucumber 测试](https://github.com/leptos-rs/leptos/blob/leptos_0.6/examples/todo_app_sqlite/e2e/README.md)
 
-You can integrate any testing tool you’d like into this flow. This example uses Cucumber, a testing framework based on natural language.
+你可以将任何你喜欢的测试工具集成到这个流程中。这个例子使用 Cucumber，一个基于自然语言的测试框架。
 
 ```
 @add_todo
@@ -186,7 +180,7 @@ Feature: Add Todo
         Then I see the pending todo
 ```
 
-The definitions for these actions are defined in Rust code.
+这些操作的定义在 Rust 代码中。
 
 ```rust
 use crate::fixtures::{action, world::AppWorld};
@@ -211,9 +205,9 @@ async fn i_add_a_todo_titled(world: &mut AppWorld, text: String) -> Result<()> {
     Ok(())
 }
 
-// etc.
+// 等等。
 ```
 
-### Learning More
+### 了解更多
 
-Feel free to check out the CI setup in the Leptos repo to learn more about how to use these tools in your own application. All of these testing methods are run regularly against actual Leptos example apps.
+请随时查看 Leptos 仓库中的 CI 设置，以了解更多关于如何在你的应用程序中使用这些工具的信息。所有这些测试方法都会定期针对实际的 Leptos 示例应用程序运行。

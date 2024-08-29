@@ -23,7 +23,7 @@
     - [使用信号](./cn/reactivity/working_with_signals.md)
     - [使用 `create_effect` 响应变化](./cn/reactivity/14_create_effect.md)
     - [插曲：响应式和函数](./cn/reactivity/interlude_functions.md)
-  - [Testing](./cn/testing.md)
+  - [测试](./cn/testing.md)
   - [Async](./cn/async/README.md)
     - [Loading Data with Resources](./cn/async/10_resources.md)
     - [Suspense](./cn/async/11_suspense.md)
