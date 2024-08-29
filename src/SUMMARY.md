@@ -1,5 +1,7 @@
 # Summary
 
+[中文译本说明](./README.md)
+
 # 中文译文
   - [简介](./cn/01_introduction.md)
   - [开始使用](./cn/getting_started/README.md)
