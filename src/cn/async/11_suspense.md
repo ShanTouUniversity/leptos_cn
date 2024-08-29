@@ -1,6 +1,6 @@
 # `<Suspense/>`
 
-In the previous chapter, we showed how you can create a simple loading screen to show some fallback while a resource is loading.
+在上一章中，我们展示了如何创建一个简单的加载屏幕，以便在资源加载时显示一些回退内容。
 
 ```rust
 let (count, set_count) = create_signal(0);
@@ -15,7 +15,7 @@ view! {
 }
 ```
 
-But what if we have two resources, and want to wait for both of them?
+但是，如果我们有两个 resources ，并且想要等待它们都加载完成怎么办？
 
 ```rust
 let (count, set_count) = create_signal(0);
@@ -35,9 +35,9 @@ view! {
 }
 ```
 
-That’s not _so_ bad, but it’s kind of annoying. What if we could invert the flow of control?
+这并不_太_糟糕，但有点烦人。如果我们可以反转控制流呢？
 
-The [`<Suspense/>`](https://docs.rs/leptos/latest/leptos/fn.Suspense.html) component lets us do exactly that. You give it a `fallback` prop and children, one or more of which usually involves reading from a resource. Reading from a resource “under” a `<Suspense/>` (i.e., in one of its children) registers that resource with the `<Suspense/>`. If it’s still waiting for resources to load, it shows the `fallback`. When they’ve all loaded, it shows the children.
+[`<Suspense/>`](https://docs.rs/leptos/latest/leptos/fn.Suspense.html) 组件可以让我们做到这一点。你给它一个 `fallback` prop 和子级，其中一个或多个通常涉及从 resource 中读取数据。从 `<Suspense/>`“下”（即它的一个子级中）读取 resource 会将该 resource 注册到 `<Suspense/>`。如果它仍在等待资源加载，它会显示 `fallback`。当它们都加载完成后，它会显示子级。
 
 ```rust
 let (count, set_count) = create_signal(0);
@@ -65,44 +65,44 @@ view! {
 }
 ```
 
-Every time one of the resources is reloading, the `"Loading..."` fallback will show again.
+每当其中一个 resource 重新加载时，`"Loading..."` 回退内容将再次显示。
 
-This inversion of the flow of control makes it easier to add or remove individual resources, as you don’t need to handle the matching yourself. It also unlocks some massive performance improvements during server-side rendering, which we’ll talk about during a later chapter.
+这种控制流的反转使得添加或删除单个 resource 变得更容易，因为你不需要自己处理匹配。它还解锁了服务器端渲染期间的一些巨大性能改进，我们将在后面的章节中讨论这些内容。
 
 ## `<Await/>`
 
-If you’re simply trying to wait for some `Future` to resolve before rendering, you may find the `<Await/>` component helpful in reducing boilerplate. `<Await/>` essentially combines a resource with the source argument `|| ()` with a `<Suspense/>` with no fallback.
+如果你只是想在渲染之前等待某个 `Future` 解析完成，你可能会发现 `<Await/>` 组件有助于减少样板代码。`<Await/>` 本质上是将一个带有源参数 `|| ()` 的 resource 与一个没有回退内容的 `<Suspense/>` 组合在一起。
 
-In other words:
+换句话说：
 
-1. It only polls the `Future` once, and does not respond to any reactive changes.
-2. It does not render anything until the `Future` resolves.
-3. After the `Future` resolves, it binds its data to whatever variable name you choose and then renders its children with that variable in scope.
+1. 它只轮询一次 `Future`，并且不响应任何响应式更改。
+2. 在 `Future` 解析完成之前，它不会渲染任何内容。
+3. 在 `Future` 解析完成后，它将其数据绑定到你选择的任何变量名，然后使用该变量在作用域内渲染其子级。
 
 ```rust
 async fn fetch_monkeys(monkey: i32) -> i32 {
-    // maybe this didn't need to be async
+    // 也许这不需要是异步的
     monkey * 2
 }
 view! {
     <Await
-        // `future` provides the `Future` to be resolved
+        // `future` 提供要解析的 `Future`
         future=|| fetch_monkeys(3)
-        // the data is bound to whatever variable name you provide
+        // 数据绑定到你提供的任何变量名
         let:data
     >
-        // you receive the data by reference and can use it in your view here
+        // 你通过引用接收数据，并可以在此处在你的视图中使用它
         <p>{*data} " little monkeys, jumping on the bed."</p>
     </Await>
 }
 ```
 
-```admonish sandbox title="Live example" collapsible=true
+```admonish sandbox title="实时示例" collapsible=true
 
-[Click to open CodeSandbox.](https://codesandbox.io/p/sandbox/11-suspense-0-5-qzpgqs?file=%2Fsrc%2Fmain.rs%3A1%2C1)
+[点击打开 CodeSandbox.](https://codesandbox.io/p/sandbox/11-suspense-0-5-qzpgqs?file=%2Fsrc%2Fmain.rs%3A1%2C1)
 
 <noscript>
-  Please enable JavaScript to view examples.
+  请启用 JavaScript 来查看示例。
 </noscript>
 
 <template>
@@ -112,7 +112,7 @@ view! {
 ```
 
 <details>
-<summary>CodeSandbox Source</summary>
+<summary>CodeSandbox 源码</summary>
 
 ```rust
 use gloo_timers::future::TimeoutFuture;
@@ -127,7 +127,7 @@ async fn important_api_call(name: String) -> String {
 fn App() -> impl IntoView {
     let (name, set_name) = create_signal("Bill".to_string());
 
-    // this will reload every time `name` changes
+    // 每次 `name` 更改时，这都会重新加载
     let async_data = create_resource(
 
         name,
@@ -143,12 +143,12 @@ fn App() -> impl IntoView {
         />
         <p><code>"name:"</code> {name}</p>
         <Suspense
-            // the fallback will show whenever a resource
-            // read "under" the suspense is loading
+            // 每当在 suspense“下”读取的 resource
+            // 正在加载时，都会显示回退内容
             fallback=move || view! { <p>"Loading..."</p> }
         >
-            // the children will be rendered once initially,
-            // and then whenever any resources has been resolved
+            // 子级将在初始时渲染一次，
+            // 然后每当任何 resource 解析完成后都会渲染一次
             <p>
                 "Your shouting name is "
                 {move || async_data.get()}

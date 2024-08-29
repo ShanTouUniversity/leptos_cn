@@ -1,17 +1,17 @@
 # `<Transition/>`
 
-You’ll notice in the `<Suspense/>` example that if you keep reloading the data, it keeps flickering back to `"Loading..."`. Sometimes this is fine. For other times, there’s [`<Transition/>`](https://docs.rs/leptos/latest/leptos/fn.Transition.html).
+你可能会注意到，在 `<Suspense/>` 示例中，如果你不断重新加载数据，它会一直闪烁回到 `"Loading..."`。有时这很好。对于其他时候，可以使用 [`<Transition/>`](https://docs.rs/leptos/latest/leptos/fn.Transition.html)。
 
-`<Transition/>` behaves exactly the same as `<Suspense/>`, but instead of falling back every time, it only shows the fallback the first time. On all subsequent loads, it continues showing the old data until the new data are ready. This can be really handy to prevent the flickering effect, and to allow users to continue interacting with your application.
+`<Transition/>` 的行为与 `<Suspense/>` 完全相同，但它不是每次都回退，而只是在第一次显示回退内容。在所有后续加载中，它会继续显示旧数据，直到新数据准备就绪。这对于防止闪烁效果以及允许用户继续与你的应用程序交互非常方便。
 
-This example shows how you can create a simple tabbed contact list with `<Transition/>`. When you select a new tab, it continues showing the current contact until the new data loads. This can be a much better user experience than constantly falling back to a loading message.
+此示例显示了如何使用 `<Transition/>` 创建一个简单的选项卡式联系人列表。当你选择一个新选项卡时，它会继续显示当前联系人，直到新数据加载完成。这比不断回退到加载消息的用户体验要好得多。
 
-```admonish sandbox title="Live example" collapsible=true
+```admonish sandbox title="实时示例" collapsible=true
 
-[Click to open CodeSandbox.](https://codesandbox.io/p/sandbox/12-transition-0-5-2jg5lz?file=%2Fsrc%2Fmain.rs%3A1%2C1)
+[点击打开 CodeSandbox.](https://codesandbox.io/p/sandbox/12-transition-0-5-2jg5lz?file=%2Fsrc%2Fmain.rs%3A1%2C1)
 
 <noscript>
-  Please enable JavaScript to view examples.
+  请启用 JavaScript 来查看示例。
 </noscript>
 
 <template>
@@ -21,7 +21,7 @@ This example shows how you can create a simple tabbed contact list with `<Transi
 ```
 
 <details>
-<summary>CodeSandbox Source</summary>
+<summary>CodeSandbox 源码</summary>
 
 ```rust
 use gloo_timers::future::TimeoutFuture;
@@ -42,7 +42,7 @@ async fn important_api_call(id: usize) -> String {
 fn App() -> impl IntoView {
     let (tab, set_tab) = create_signal(0);
 
-    // this will reload every time `tab` changes
+    // 每次 `tab` 更改时，这都会重新加载
     let user_data = create_resource(tab, |tab| async move { important_api_call(tab).await });
 
     view! {
@@ -72,9 +72,9 @@ fn App() -> impl IntoView {
             }}
         </div>
         <Transition
-            // the fallback will show initially
-            // on subsequent reloads, the current child will
-            // continue showing
+            // 回退内容将初始显示
+            // 在后续重新加载中，当前子级将
+            // 继续显示
             fallback=move || view! { <p>"Loading..."</p> }
         >
             <p>
