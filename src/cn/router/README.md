@@ -1,23 +1,23 @@
-# Routing
+# 路由
 
-## The Basics
+## 基础知识
 
-Routing drives most websites. A router is the answer to the question, “Given this URL, what should appear on the page?”
+路由驱动着大多数网站。路由器（ router ）是对“给定这个 URL，页面上应该显示什么？”这个问题的答案。
 
-A URL consists of many parts. For example, the URL `https://my-cool-blog.com/blog/search?q=Search#results` consists of
+URL 由许多部分组成。例如，URL `https://my-cool-blog.com/blog/search?q=Search#results` 由以下部分组成
 
-- a _scheme_: `https`
-- a _domain_: `my-cool-blog.com`
-- a **path**: `/blog/search`
-- a **query** (or **search**): `?q=Search`
-- a _hash_: `#results`
+- 一个 _协议_：`https`
+- 一个 _域名_：`my-cool-blog.com`
+- 一个 **路径**：`/blog/search`
+- 一个 **查询**（或 **搜索**）：`?q=Search`
+- 一个 _哈希_：`#results`
 
-The Leptos Router works with the path and query (`/blog/search?q=Search`). Given this piece of the URL, what should the app render on the page?
+Leptos 路由器使用路径和查询（`/blog/search?q=Search`）。给定这个 URL 片段，应用程序应该在页面上渲染什么？
 
-## The Philosophy
+## 理念
 
-In most cases, the path should drive what is displayed on the page. From the user’s perspective, for most applications, most major changes in the state of the app should be reflected in the URL. If you copy and paste the URL and open it in another tab, you should find yourself more or less in the same place.
+在大多数情况下，路径应该驱动页面上显示的内容。从用户的角度来看，对于大多数应用程序，应用程序状态中的大多数主要更改都应该反映在 URL 中。如果你复制粘贴 URL 并在另一个选项卡中打开它，你应该会发现自己或多或少地处在同一个位置。
 
-In this sense, the router is really at the heart of the global state management for your application. More than anything else, it drives what is displayed on the page.
+从这个意义上说，路由器实际上是你的应用程序的全局状态管理的核心。最重要的是，它驱动着页面上显示的内容。
 
-The router handles most of this work for you by mapping the current location to particular components.
+路由器通过将当前位置映射到特定的组件来为你处理大部分工作。

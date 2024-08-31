@@ -1,66 +1,63 @@
-# Global State Management
+# 全局状态管理
 
-So far, we've only been working with local state in components, and we’ve seen how to coordinate state between parent and child components. On occasion, there are times where people look for a more general solution for global state management that can work throughout an application.
+到目前为止，我们只处理过组件中的局部状态，并且我们已经了解了如何在父子组件之间协调状态。有时，人们会寻找更通用的全局状态管理解决方案，该解决方案可以在整个应用程序中使用。
 
-In general, **you do not need this chapter.** The typical pattern is to compose your application out of components, each of which manages its own local state, not to store all state in a global structure. However, there are some cases (like theming, saving user settings, or sharing data between components in different parts of your UI) in which you may want to use some kind of global state management.
+一般来说，**你不需要本章**。典型的模式是将你的应用程序组合成组件，每个组件管理自己的局部状态，而不是将所有状态存储在全局结构中。但是，在某些情况下（例如主题设置、保存用户设置或在 UI 不同部分的组件之间共享数据），你可能希望使用某种全局状态管理。
 
-The three best approaches to global state are
+三种最佳的全局状态方法是
 
-1. Using the router to drive global state via the URL
-2. Passing signals through context
-3. Creating a global state struct and creating lenses into it with `create_slice`
+1. 使用路由器通过 URL 驱动全局状态
+2. 通过上下文传递信号
+3. 创建一个全局状态结构体，并使用 `create_slice` 创建指向它的镜头
 
-## Option #1: URL as Global State
+## 选项 #1：URL 作为全局状态
 
-In many ways, the URL is actually the best way to store global state. It can be accessed from any component, anywhere in your tree. There are native HTML elements like `<form>` and `<a>` that exist solely to update the URL. And it persists across page reloads and between devices; you can share a URL with a friend or send it from your phone to your laptop and any state stored in it will be replicated.
+在很多方面，URL 实际上是存储全局状态的最佳方式。它可以从你的树中的任何组件、任何位置访问。有一些原生 HTML 元素（如 `<form>` 和 `<a>`）专门用于更新 URL。而且它可以在页面重新加载和不同设备之间持久存在；你可以与朋友共享 URL，或者将其从手机发送到笔记本电脑，其中存储的任何状态都将被复制。
 
-The next few sections of the tutorial will be about the router, and we’ll get much more into these topics.
+本教程的接下来几节将介绍路由器，我们将深入探讨这些主题。
 
-But for now, we'll just look at options #2 and #3.
+但现在，我们将只关注选项 #2 和 #3。
 
-## Option #2: Passing Signals through Context
+## 选项 #2：通过上下文传递信号
 
-In the section on [parent-child communication](view/08_parent_child.md), we saw that you can use `provide_context` to pass signal from a parent component to a child, and `use_context` to read it in the child. But `provide_context` works across any distance. If you want to create a global signal that holds some piece of state, you can provide it and access it via context anywhere in the descendants of the component where you provide it.
+在[父子组件通信](view/08_parent_child.md)部分，我们看到你可以使用 `provide_context` 将信号从父组件传递给子组件，并使用 `use_context` 在子组件中读取它。但 `provide_context` 可以在任何距离上工作。如果你想创建一个全局信号来保存某个状态片段，你可以在你提供它的组件的后代中的任何地方提供它并通过上下文访问它。
 
-A signal provided via context only causes reactive updates where it is read, not in any of the components in between, so it maintains the power of fine-grained reactive updates, even at a distance.
+通过上下文提供的信号只会在读取它的地方引起响应式更新，而不会在两者之间的任何组件中引起更新，因此它即使在远处也能保持细粒度响应式更新的能力。
 
-We start by creating a signal in the root of the app and providing it to
-all its children and descendants using `provide_context`.
+我们首先在应用程序的根目录中创建一个信号，并使用 `provide_context` 将其提供给它的所有子级和后代。
 
 ```rust
 #[component]
 fn App() -> impl IntoView {
-    // here we create a signal in the root that can be consumed
-    // anywhere in the app.
+    // 这里我们在根目录中创建一个信号，可以在应用程序的任何地方使用它。
     let (count, set_count) = create_signal(0);
-    // we'll pass the setter to specific components,
-    // but provide the count itself to the whole app via context
+    // 我们将把设置器传递给特定的组件，
+    // 但通过上下文将计数本身提供给整个应用程序
     provide_context(count);
 
     view! {
-        // SetterButton is allowed to modify the count
+        // SetterButton 允许修改计数
         <SetterButton set_count/>
-        // These consumers can only read from it
-        // But we could give them write access by passing `set_count` if we wanted
+        // 这些消费者只能读取它
+        // 但是如果我们愿意，我们可以通过传递 `set_count` 来赋予他们写权限
         <FancyMath/>
         <ListItems/>
     }
 }
 ```
 
-`<SetterButton/>` is the kind of counter we’ve written several times now.
-(See the sandbox below if you don’t understand what I mean.)
+`<SetterButton/>` 是我们已经写过好几次的计数器类型。
+（如果你不明白我的意思，请参阅下面的沙盒。）
 
-`<FancyMath/>` and `<ListItems/>` both consume the signal we’re providing via
-`use_context` and do something with it.
+`<FancyMath/>` 和 `<ListItems/>` 都使用我们通过 `use_context` 提供的信号并对其进行处理。
 
 ```rust
-/// A component that does some "fancy" math with the global count
+/// 使用全局计数进行一些“花哨”数学运算的组件
 #[component]
 fn FancyMath() -> impl IntoView {
-    // here we consume the global count signal with `use_context`
+    // 这里我们使用 `use_context` 使用全局计数信号
     let count = use_context::<ReadSignal<u32>>()
-        // we know we just provided this in the parent component
+        // 我们知道我们刚刚在父组件中提供了它
         .expect("there to be a `count` signal provided");
     let is_even = move || count() & 1 == 0;
 
@@ -79,7 +76,7 @@ fn FancyMath() -> impl IntoView {
 }
 ```
 
-Note that this same pattern can be applied to more complex state. If you have multiple fields you want to update independently, you can do that by providing some struct of signals:
+请注意，同样的模式可以应用于更复杂的状态。如果你有多个想要独立更新的字段，你可以通过提供一些信号结构体来做到这一点：
 
 ```rust
 #[derive(Copy, Clone, Debug)]
@@ -101,13 +98,13 @@ impl GlobalState {
 fn App() -> impl IntoView {
     provide_context(GlobalState::new());
 
-    // etc.
+    // 等等。
 }
 ```
 
-## Option #3: Create a Global State Struct and Slices
+## 选项 #3：创建全局状态结构体和切片
 
-You may find it cumbersome to wrap each field of a structure in a separate signal like this. In some cases, it can be useful to create a plain struct with non-reactive fields, and then wrap that in a signal.
+你可能会觉得像这样将结构体的每个字段都包装在一个单独的信号中很麻烦。在某些情况下，创建一个具有非响应式字段的普通结构体，然后将其包装在一个信号中会很有用。
 
 ```rust
 #[derive(Copy, Clone, Debug, Default)]
@@ -120,11 +117,11 @@ struct GlobalState {
 fn App() -> impl IntoView {
     provide_context(create_rw_signal(GlobalState::default()));
 
-    // etc.
+    // 等等。
 }
 ```
 
-But there’s a problem: because our whole state is wrapped in one signal, updating the value of one field will cause reactive updates in parts of the UI that only depend on the other.
+但有一个问题：因为我们的整个状态都包装在一个信号中，所以更新一个字段的值会导致 UI 中仅依赖于另一个字段的部分发生响应式更新。
 
 ```rust
 let state = expect_context::<RwSignal<GlobalState>>();
@@ -134,26 +131,26 @@ view! {
 }
 ```
 
-In this example, clicking the button will cause the text inside `<p>` to be updated, cloning `state.name` again! Because signals are the atomic unit of reactivity, updating any field of the signal triggers updates to everything that depends on the signal.
+在这个例子中，点击按钮会导致 `<p>` 内部的文本被更新，再次克隆 `state.name`！因为信号是响应式的原子单元，所以更新信号的任何字段都会触发对其依赖的所有内容的更新。
 
-There’s a better way. You can take fine-grained, reactive slices by using [`create_memo`](https://docs.rs/leptos/latest/leptos/fn.create_memo.html) or [`create_slice`](https://docs.rs/leptos/latest/leptos/fn.create_slice.html) (which uses `create_memo` but also provides a setter). “Memoizing” a value means creating a new reactive value which will only update when it changes. “Memoizing a slice” means creating a new reactive value which will only update when some field of the state struct updates.
+有一种更好的方法。你可以使用 [`create_memo`](https://docs.rs/leptos/latest/leptos/fn.create_memo.html) 或 [`create_slice`](https://docs.rs/leptos/latest/leptos/fn.create_slice.html)（它使用 `create_memo` 但也提供了一个设置器）来获取细粒度的响应式切片。“记忆”一个值意味着创建一个新的响应式值，该值只有在它发生变化时才会更新。“记忆一个切片”意味着创建一个新的响应式值，该值只有在状态结构体的某个字段更新时才会更新。
 
-Here, instead of reading from the state signal directly, we create “slices” of that state with fine-grained updates via `create_slice`. Each slice signal only updates when the particular piece of the larger struct it accesses updates. This means you can create a single root signal, and then take independent, fine-grained slices of it in different components, each of which can update without notifying the others of changes.
+在这里，我们不是直接从状态信号中读取，而是通过 `create_slice` 创建该状态的“切片”，并进行细粒度更新。每个切片信号仅在它访问的较大结构体的特定部分更新时才会更新。这意味着你可以创建一个单一的根信号，然后在不同的组件中获取它的独立的、细粒度的切片，每个切片都可以更新而不会通知其他切片更改。
 
 ```rust
-/// A component that updates the count in the global state.
+/// 更新全局状态中计数的组件。
 #[component]
 fn GlobalStateCounter() -> impl IntoView {
     let state = expect_context::<RwSignal<GlobalState>>();
 
-    // `create_slice` lets us create a "lens" into the data
+    // `create_slice` 让我们可以创建数据的一个“镜头”
     let (count, set_count) = create_slice(
 
-        // we take a slice *from* `state`
+        // 我们从 `state` 中获取一个切片
         state,
-        // our getter returns a "slice" of the data
+        // 我们的 getter 返回数据的“切片”
         |state| state.count,
-        // our setter describes how to mutate that slice, given a new value
+        // 我们的 setter 描述了如何根据新值修改该切片
         |state, n| state.count = n,
     );
 
@@ -173,19 +170,16 @@ fn GlobalStateCounter() -> impl IntoView {
 }
 ```
 
-Clicking this button only updates `state.count`, so if we create another slice
-somewhere else that only takes `state.name`, clicking the button won’t cause
-that other slice to update. This allows you to combine the benefits of a top-down
-data flow and of fine-grained reactive updates.
+点击此按钮只会更新 `state.count`，因此如果我们在其他地方创建另一个仅获取 `state.name` 的切片，则点击该按钮不会导致该切片更新。这允许你结合自上而下的数据流和细粒度响应式更新的优点。
 
-> **Note**: There are some significant drawbacks to this approach. Both signals and memos need to own their values, so a memo will need to clone the field’s value on every change. The most natural way to manage state in a framework like Leptos is always to provide signals that are as locally-scoped and fine-grained as they can be, not to hoist everything up into global state. But when you _do_ need some kind of global state, `create_slice` can be a useful tool.
+> **注意**：这种方法有一些明显的缺点。信号和 memo 都需要拥有它们的值，因此 memo 需要在每次更改时克隆字段的值。在像 Leptos 这样的框架中管理状态的最自然方法始终是提供尽可能局部作用域和细粒度的信号，而不是将所有东西都提升到全局状态。但是，当你*确实*需要某种全局状态时，`create_slice` 可能是一个有用的工具。
 
-```admonish sandbox title="Live example" collapsible=true
+```admonish sandbox title="实时示例" collapsible=true
 
-[Click to open CodeSandbox.](https://codesandbox.io/p/sandbox/15-global-state-0-5-8c2ff6?file=%2Fsrc%2Fmain.rs%3A1%2C2)
+[点击打开 CodeSandbox.](https://codesandbox.io/p/sandbox/15-global-state-0-5-8c2ff6?file=%2Fsrc%2Fmain.rs%3A1%2C2)
 
 <noscript>
-  Please enable JavaScript to view examples.
+  请启用 JavaScript 来查看示例。
 </noscript>
 
 <template>
@@ -195,49 +189,48 @@ data flow and of fine-grained reactive updates.
 ```
 
 <details>
-<summary>CodeSandbox Source</summary>
+<summary>CodeSandbox 源码</summary>
 
 ```rust
 use leptos::*;
 
-// So far, we've only been working with local state in components
-// We've only seen how to communicate between parent and child components
-// But there are also more general ways to manage global state
+// 到目前为止，我们只处理过组件中的局部状态
+// 我们只了解了如何在父子组件之间进行通信
+// 但是还有一些更通用的方法来管理全局状态
 //
-// The three best approaches to global state are
-// 1. Using the router to drive global state via the URL
-// 2. Passing signals through context
-// 3. Creating a global state struct and creating lenses into it with `create_slice`
+// 全局状态的三种最佳方法是
+// 1. 使用路由器通过 URL 驱动全局状态
+// 2. 通过上下文传递信号
+// 3. 创建一个全局状态结构体，并使用 `create_slice` 创建指向它的镜头
 //
-// Option #1: URL as Global State
-// The next few sections of the tutorial will be about the router.
-// So for now, we'll just look at options #2 and #3.
+// 选项 #1：URL 作为全局状态
+// 本教程的接下来几节将介绍路由器。
+// 所以现在，我们将只关注选项 #2 和 #3。
 
-// Option #2: Pass Signals through Context
+// 选项 #2：通过上下文传递信号
 //
-// In virtual DOM libraries like React, using the Context API to manage global
-// state is a bad idea: because the entire app exists in a tree, changing
-// some value provided high up in the tree can cause the whole app to render.
+// 在像 React 这样的虚拟 DOM 库中，使用 Context API 来管理全局
+// 状态是一个坏主意：因为整个应用程序都存在于一棵树中，所以改变
+// 树中高层提供的某些值会导致整个应用程序重新渲染。
 //
-// In fine-grained reactive libraries like Leptos, this is simply not the case.
-// You can create a signal in the root of your app and pass it down to other
-// components using provide_context(). Changing it will only cause rerendering
-// in the specific places it is actually used, not the whole app.
+// 在像 Leptos 这样的细粒度响应式库中，情况并非如此。
+// 你可以在应用程序的根目录中创建一个信号，并使用 provide_context() 将其传递给
+// 其他组件。更改它只会导致在实际使用它的特定位置重新渲染，
+// 而不会导致整个应用程序重新渲染。
 #[component]
 fn Option2() -> impl IntoView {
-    // here we create a signal in the root that can be consumed
-    // anywhere in the app.
+    // 这里我们在根目录中创建一个信号，可以在应用程序的任何地方使用它。
     let (count, set_count) = create_signal(0);
-    // we'll pass the setter to specific components,
-    // but provide the count itself to the whole app via context
+    // 我们将把设置器传递给特定的组件，
+    // 但通过上下文将计数本身提供给整个应用程序
     provide_context(count);
 
     view! {
         <h1>"Option 2: Passing Signals"</h1>
-        // SetterButton is allowed to modify the count
+        // SetterButton 允许修改计数
         <SetterButton set_count/>
-        // These consumers can only read from it
-        // But we could give them write access by passing `set_count` if we wanted
+        // 这些消费者只能读取它
+        // 但是如果我们愿意，我们可以通过传递 `set_count` 来赋予他们写权限
         <div style="display: flex">
             <FancyMath/>
             <ListItems/>
@@ -245,7 +238,7 @@ fn Option2() -> impl IntoView {
     }
 }
 
-/// A button that increments our global counter.
+/// 增加我们全局计数器的按钮。
 #[component]
 fn SetterButton(set_count: WriteSignal<u32>) -> impl IntoView {
     view! {
@@ -257,12 +250,12 @@ fn SetterButton(set_count: WriteSignal<u32>) -> impl IntoView {
     }
 }
 
-/// A component that does some "fancy" math with the global count
+/// 使用全局计数进行一些“花哨”数学运算的组件
 #[component]
 fn FancyMath() -> impl IntoView {
-    // here we consume the global count signal with `use_context`
+    // 这里我们使用 `use_context` 使用全局计数信号
     let count = use_context::<ReadSignal<u32>>()
-        // we know we just provided this in the parent component
+        // 我们知道我们刚刚在父组件中提供了它
         .expect("there to be a `count` signal provided");
     let is_even = move || count() & 1 == 0;
 
@@ -280,10 +273,10 @@ fn FancyMath() -> impl IntoView {
     }
 }
 
-/// A component that shows a list of items generated from the global count.
+/// 显示从全局计数生成的项目列表的组件。
 #[component]
 fn ListItems() -> impl IntoView {
-    // again, consume the global count signal with `use_context`
+    // 再次使用 `use_context` 使用全局计数信号
     let count = use_context::<ReadSignal<u32>>().expect("there to be a `count` signal provided");
 
     let squares = move || {
@@ -299,13 +292,13 @@ fn ListItems() -> impl IntoView {
     }
 }
 
-// Option #3: Create a Global State Struct
+// 选项 #3：创建一个全局状态结构体
 //
-// You can use this approach to build a single global data structure
-// that holds the state for your whole app, and then access it by
-// taking fine-grained slices using `create_slice` or `create_memo`,
-// so that changing one part of the state doesn't cause parts of your
-// app that depend on other parts of the state to change.
+// 你可以使用此方法来构建一个单一的全局数据结构
+// 来保存整个应用程序的状态，然后通过
+// 使用 `create_slice` 或 `create_memo` 获取细粒度切片来访问它，
+// 这样更改状态的一部分不会导致你的
+// 应用程序中依赖于状态其他部分的部分发生更改。
 
 #[derive(Default, Clone, Debug)]
 struct GlobalState {
@@ -315,8 +308,8 @@ struct GlobalState {
 
 #[component]
 fn Option3() -> impl IntoView {
-    // we'll provide a single signal that holds the whole state
-    // each component will be responsible for creating its own "lens" into it
+    // 我们将提供一个保存整个状态的单一信号
+    // 每个组件将负责创建自己的“镜头”来访问它
     let state = create_rw_signal(GlobalState::default());
     provide_context(state);
 
@@ -337,19 +330,19 @@ fn Option3() -> impl IntoView {
     }
 }
 
-/// A component that updates the count in the global state.
+/// 更新全局状态中计数的组件。
 #[component]
 fn GlobalStateCounter() -> impl IntoView {
     let state = use_context::<RwSignal<GlobalState>>().expect("state to have been provided");
 
-    // `create_slice` lets us create a "lens" into the data
+    // `create_slice` 让我们可以创建数据的一个“镜头”
     let (count, set_count) = create_slice(
 
-        // we take a slice *from* `state`
+        // 我们从 `state` 中获取一个切片
         state,
-        // our getter returns a "slice" of the data
+        // 我们的 getter 返回数据的“切片”
         |state| state.count,
-        // our setter describes how to mutate that slice, given a new value
+        // 我们的 setter 描述了如何根据新值修改该切片
         |state, n| state.count = n,
     );
 
@@ -368,20 +361,19 @@ fn GlobalStateCounter() -> impl IntoView {
     }
 }
 
-/// A component that updates the count in the global state.
+/// 更新全局状态中计数的组件。
 #[component]
 fn GlobalStateInput() -> impl IntoView {
     let state = use_context::<RwSignal<GlobalState>>().expect("state to have been provided");
 
-    // this slice is completely independent of the `count` slice
-    // that we created in the other component
-    // neither of them will cause the other to rerun
+    // 这个切片完全独立于我们在另一个组件中创建的 `count` 切片
+    // 它们都不会导致另一个重新运行
     let (name, set_name) = create_slice(
-        // we take a slice *from* `state`
+        // 我们从 `state` 中获取一个切片
         state,
-        // our getter returns a "slice" of the data
+        // 我们的 getter 返回数据的“切片”
         |state| state.name.clone(),
-        // our setter describes how to mutate that slice, given a new value
+        // 我们的 setter 描述了如何根据新值修改该切片
         |state, n| state.name = n,
     );
 
@@ -399,10 +391,10 @@ fn GlobalStateInput() -> impl IntoView {
         </div>
     }
 }
-// This `main` function is the entry point into the app
-// It just mounts our component to the <body>
-// Because we defined it as `fn App`, we can now use it in a
-// template as <App/>
+// 这个 `main` 函数是应用程序的入口点
+// 它只是将我们的组件挂载到 <body> 上
+// 因为我们将其定义为 `fn App`，所以我们现在可以在
+// 模板中将其用作 <App/>
 fn main() {
     leptos::mount_to_body(|| view! { <Option2/><Option3/> })
 }

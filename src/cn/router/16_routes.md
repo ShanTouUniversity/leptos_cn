@@ -1,35 +1,35 @@
-# Defining Routes
+# 定义路由
 
-## Getting Started
+## 入门
 
-It’s easy to get started with the router.
+路由器很容易上手。
 
-First things first, make sure you’ve added the `leptos_router` package to your dependencies. Like `leptos`, the router relies on activating a `csr`, `hydrate`, or `ssr` feature. For example, if you’re adding the router to a client-side rendered app, you’ll want to run 
+首先，请确保你已将 `leptos_router` 包添加到你的依赖项中。与 `leptos` 一样，路由器依赖于激活 `csr`、`hydrate` 或 `ssr` 功能。例如，如果你要将路由器添加到客户端渲染的应用程序中，你将要运行
 ```sh 
 cargo add leptos_router --features=csr 
 ```
 
-> It’s important that the router is a separate package from `leptos` itself. This means that everything in the router can be defined in user-land code. If you want to create your own router, or use no router, you’re completely free to do that!
+> leptos_router 是一个单独的包，这一点很重要。这意味着路由器中的所有内容都可以在用户代码中定义。如果你想创建自己的路由器，或者不使用路由器，你完全可以这样做！
 
-And import the relevant types from the router, either with something like
+并从路由器中导入相关的类型，可以使用类似以下的内容
 
 ```rust
 use leptos_router::{Route, RouteProps, Router, RouterProps, Routes, RoutesProps};
 ```
 
-or simply
+或者简单地使用
 
 ```rust
 use leptos_router::*;
 ```
 
-## Providing the `<Router/>`
+## 提供 `<Router/>`
 
-Routing behavior is provided by the [`<Router/>`](https://docs.rs/leptos_router/latest/leptos_router/fn.Router.html) component. This should usually be somewhere near the root of your application, wrapping the rest of the app.
+路由行为由 [`<Router/>`](https://docs.rs/leptos_router/latest/leptos_router/fn.Router.html) 组件提供。这通常应该在你的应用程序的根目录附近，包装应用程序的其余部分。
 
-> You shouldn’t try to use multiple `<Router/>`s in your app. Remember that the router drives global state: if you have multiple routers, which one decides what to do when the URL changes?
+> 你不应该尝试在你的应用程序中使用多个 `<Router/>`。请记住，路由器驱动着全局状态：如果你有多个路由器，当 URL 发生变化时，由谁来决定做什么？
 
-Let’s start with a simple `<App/>` component using the router:
+让我们从一个使用路由器的简单 `<App/>` 组件开始：
 
 ```rust
 use leptos::*;
@@ -50,11 +50,11 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-## Defining `<Routes/>`
+## 定义 `<Routes/>`
 
-The [`<Routes/>`](https://docs.rs/leptos_router/latest/leptos_router/fn.Routes.html) component is where you define all the routes to which a user can navigate in your application. Each possible route is defined by a [`<Route/>`](https://docs.rs/leptos_router/latest/leptos_router/fn.Route.html) component.
+[`<Routes/>`](https://docs.rs/leptos_router/latest/leptos_router/fn.Routes.html) 组件是你定义用户可以在你的应用程序中导航到的所有路由的地方。每个可能的路由都由一个 [`<Route/>`](https://docs.rs/leptos_router/latest/leptos_router/fn.Route.html) 组件定义。
 
-You should place the `<Routes/>` component at the location within your app where you want routes to be rendered. Everything outside `<Routes/>` will be present on every page, so you can leave things like a navigation bar or menu outside the `<Routes/>`.
+你应该将 `<Routes/>` 组件放置在你的应用程序中希望渲染路由的位置。`<Routes/>` 之外的所有内容都将出现在每个页面上，因此你可以将导航栏或菜单之类的内容留在 `<Routes/>` 之外。
 
 ```rust
 use leptos::*;
@@ -68,7 +68,7 @@ pub fn App() -> impl IntoView {
         /* ... */
       </nav>
       <main>
-        // all our routes will appear inside <main>
+        // 我们所有的路由都将出现在 <main> 内部
         <Routes>
           /* ... */
         </Routes>
@@ -78,15 +78,15 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-Individual routes are defined by providing children to `<Routes/>` with the `<Route/>` component. `<Route/>` takes a `path` and a `view`. When the current location matches `path`, the `view` will be created and displayed.
+通过使用 `<Route/>` 组件为 `<Routes/>` 提供子级来定义单个路由。`<Route/>` 接受一个 `path` 和一个 `view`。当当前位置与 `path` 匹配时，将创建并显示 `view`。
 
-The `path` can include
+`path` 可以包括
 
-- a static path (`/users`),
-- dynamic, named parameters beginning with a colon (`/:id`),
-- and/or a wildcard beginning with an asterisk (`/user/*any`)
+- 一个静态路径（`/users`），
+- 以冒号开头的动态命名参数（`/:id`），
+- 和/或以星号开头的通配符（`/user/*any`）
 
-The `view` is a function that returns a view. Any component with no props works here, as does a closure that returns some view.
+`view` 是一个返回视图的函数。任何没有 props 的组件都可以在这里工作，返回某个视图的闭包也可以。
 
 ```rust
 <Routes>
@@ -97,22 +97,22 @@ The `view` is a function that returns a view. Any component with no props works 
 </Routes>
 ```
 
-> `view` takes a `Fn() -> impl IntoView`. If a component has no props, it can be passed directly into the `view`. In this case, `view=Home` is just a shorthand for `|| view! { <Home/> }`.
+> `view` 接受一个 `Fn() -> impl IntoView`。如果一个组件没有 props，它可以直接传递到 `view` 中。在这种情况下，`view=Home` 只是 `|| view! { <Home/> }` 的简写。
 
-Now if you navigate to `/` or to `/users` you’ll get the home page or the `<Users/>`. If you go to `/users/3` or `/blahblah` you’ll get a user profile or your 404 page (`<NotFound/>`). On every navigation, the router determines which `<Route/>` should be matched, and therefore what content should be displayed where the `<Routes/>` component is defined.
+现在，如果你导航到 `/` 或 `/users`，你将获得主页或 `<Users/>`。如果你访问 `/users/3` 或 `/blahblah`，你将获得用户配置文件或你的 404 页面（`<NotFound/>`）。在每次导航中，路由器都会确定应该匹配哪个 `<Route/>`，从而确定应该在 `<Routes/>` 组件定义的位置显示什么内容。
 
-Note that you can define your routes in any order. The router scores each route to see how good a match it is, rather than simply trying to match them top to bottom.
+请注意，你可以按任何顺序定义你的路由。路由器会对每个路由进行评分，以查看它的匹配程度，而不是简单地尝试从上到下进行匹配。
 
-Simple enough?
+够简单吧？
 
-## Conditional Routes
+## 条件路由
 
-`leptos_router` is based on the assumption that you have one and only one `<Routes/>` component in your app. It uses this to generate routes on the server side, optimize route matching by caching calculated branches, and render your application.
+`leptos_router` 基于你的应用程序中只有一个 `<Routes/>` 组件的假设。它使用它在服务器端生成路由，通过缓存计算的分支优化路由匹配，并渲染你的应用程序。
 
-You should not conditionally render `<Routes/>` using another component like `<Show/>` or `<Suspense/>`.
+你不应该使用 `<Show/>` 或 `<Suspense/>` 之类的其他组件有条件地渲染 `<Routes/>`。
 
 ```rust
-// ❌ don't do this!
+// ❌ 不要这样做！
 view! {
   <Show when=|| is_loaded() fallback=|| view! { <p>"Loading"</p> }>
     <Routes>
@@ -122,26 +122,26 @@ view! {
 }
 ```
 
-Instead, you can use nested routing to render your `<Routes/>` once, and conditionally render the router outlet:
+相反，你可以使用嵌套路由来渲染一次 `<Routes/>`，并有条件地渲染路由器出口：
 
 ```rust
-// ✅ do this instead!
+// ✅ 改为这样做！
 view! {
   <Routes>
-    // parent route
+    // 父路由
     <Route path="/" view=move || {
       view! {
-        // only show the outlet if data have loaded
+        // 仅在数据加载完成后显示出口
         <Show when=|| is_loaded() fallback=|| view! { <p>"Loading"</p> }>
           <Outlet/>
         </Show>
       }
     }>
-      // nested child route
+      // 嵌套子路由
       <Route path="/" view=Home/>
     </Route>
   </Routes>
 }
 ```
 
-If this looks bizarre, don’t worry! The next section of the book is about this kind of nested routing.
+如果这看起来很奇怪，不要担心！本书的下一节将介绍这种嵌套路由。

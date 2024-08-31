@@ -1,24 +1,24 @@
-# Params and Queries
+# 参数和查询
 
-Static paths are useful for distinguishing between different pages, but almost every application wants to pass data through the URL at some point.
+静态路径对于区分不同的页面很有用，但几乎每个应用程序都希望在某些时候通过 URL 传递数据。
 
-There are two ways you can do this:
+你可以通过两种方式来做到这一点：
 
-1. named route **params** like `id` in `/users/:id`
-2. named route **queries** like `q` in `/search?q=Foo`
+1. 命名路由 **参数**，如 `/users/:id` 中的 `id`
+2. 命名路由 **查询**，如 `/search?q=Foo` 中的 `q`
 
-Because of the way URLs are built, you can access the query from _any_ `<Route/>` view. You can access route params from the `<Route/>` that defines them or any of its nested children.
+由于 URL 的构建方式，你可以从_任何_ `<Route/>` 视图中访问查询。你可以从定义它们的 `<Route/>` 或其任何嵌套子级访问路由参数。
 
-Accessing params and queries is pretty simple with a couple of hooks:
+使用几个钩子访问参数和查询非常简单：
 
-- [`use_query`](https://docs.rs/leptos_router/latest/leptos_router/fn.use_query.html) or [`use_query_map`](https://docs.rs/leptos_router/latest/leptos_router/fn.use_query_map.html)
-- [`use_params`](https://docs.rs/leptos_router/latest/leptos_router/fn.use_params.html) or [`use_params_map`](https://docs.rs/leptos_router/latest/leptos_router/fn.use_params_map.html)
+- [`use_query`](https://docs.rs/leptos_router/latest/leptos_router/fn.use_query.html) 或 [`use_query_map`](https://docs.rs/leptos_router/latest/leptos_router/fn.use_query_map.html)
+- [`use_params`](https://docs.rs/leptos_router/latest/leptos_router/fn.use_params.html) 或 [`use_params_map`](https://docs.rs/leptos_router/latest/leptos_router/fn.use_params_map.html)
 
-Each of these comes with a typed option (`use_query` and `use_params`) and an untyped option (`use_query_map` and `use_params_map`).
+每一个都有一个类型化选项（`use_query` 和 `use_params`）和一个非类型化选项（`use_query_map` 和 `use_params_map`）。
 
-The untyped versions hold a simple key-value map. To use the typed versions, derive the [`Params`](https://docs.rs/leptos_router/0.2.3/leptos_router/trait.Params.html) trait on a struct.
+非类型化版本保存一个简单的键值映射。要使用类型化版本，请在结构体上派生 [`Params`](https://docs.rs/leptos_router/0.2.3/leptos_router/trait.Params.html) 特征。
 
-> `Params` is a very lightweight trait to convert a flat key-value map of strings into a struct by applying `FromStr` to each field. Because of the flat structure of route params and URL queries, it’s significantly less flexible than something like `serde`; it also adds much less weight to your binary.
+> `Params` 是一个非常轻量级的特征，通过将 `FromStr` 应用于每个字段，将字符串的扁平键值映射转换为结构体。由于路由参数和 URL 查询的扁平结构，它远不如 `serde` 灵活；它也为你的二进制文件增加更少的重量。
 
 ```rust
 use leptos::*;
@@ -35,19 +35,19 @@ struct ContactSearch {
 }
 ```
 
-> Note: The `Params` derive macro is located at `leptos::Params`, and the `Params` trait is at `leptos_router::Params`. If you avoid using glob imports like `use leptos::*;`, make sure you’re importing the right one for the derive macro.
+> 注意：`Params` 派生宏位于 `leptos::Params`，`Params` 特征位于 `leptos_router::Params`。如果你避免使用像 `use leptos::*;` 这样的全局导入，请确保你为派生宏导入了正确的宏。
 >
-> If you are not using the `nightly` feature, you will get the error
+> 如果你没有使用 `nightly` 功能，你会收到以下错误
 >
 > ```
 > no function or associated item named `into_param` found for struct `std::string::String` in the current scope
 > ```
 >
-> At the moment, supporting both `T: FromStr` and `Option<T>` for typed params requires a nightly feature. You can fix this by simply changing the struct to use `q: Option<String>` instead of `q: String`.
+> 目前，支持 `T: FromStr` 和 `Option<T>` 作为类型化参数需要一个 nightly 功能。你可以通过简单地将结构体更改为使用 `q: Option<String>` 而不是 `q: String` 来解决此问题。
 
-Now we can use them in a component. Imagine a URL that has both params and a query, like `/contacts/:id?q=Search`.
+现在我们可以在组件中使用它们了。想象一个既有参数又有查询的 URL，如 `/contacts/:id?q=Search`。
 
-The typed versions return `Memo<Result<T, _>>`. It’s a Memo so it reacts to changes in the URL. It’s a `Result` because the params or query need to be parsed from the URL, and may or may not be valid.
+类型化版本返回 `Memo<Result<T, _>>`。它是一个 Memo，因此它对 URL 的更改做出反应。它是一个 `Result`，因为需要从 URL 中解析参数或查询，并且可能有效也可能无效。
 
 ```rust
 let params = use_params::<ContactParams>();
@@ -63,7 +63,7 @@ let id = move || {
 };
 ```
 
-The untyped versions return `Memo<ParamsMap>`. Again, it’s memo to react to changes in the URL. [`ParamsMap`](https://docs.rs/leptos_router/0.2.3/leptos_router/struct.ParamsMap.html) behaves a lot like any other map type, with a `.get()` method that returns `Option<&String>`.
+非类型化版本返回 `Memo<ParamsMap>`。同样，它是一个 memo，以对 URL 的更改做出反应。[`ParamsMap`](https://docs.rs/leptos_router/0.2.3/leptos_router/struct.ParamsMap.html) 的行为与任何其他映射类型非常相似，它的 `.get()` 方法返回 `Option<&String>`。
 
 ```rust
 let params = use_params_map();
@@ -75,19 +75,19 @@ let id = move || {
 };
 ```
 
-This can get a little messy: deriving a signal that wraps an `Option<_>` or `Result<_>` can involve a couple steps. But it’s worth doing this for two reasons:
+这可能会有点混乱：派生一个包装 `Option<_>` 或 `Result<_>` 的信号可能需要几个步骤。但是这样做是值得的，原因有两个：
 
-1. It’s correct, i.e., it forces you to consider the cases, “What if the user doesn’t pass a value for this query field? What if they pass an invalid value?”
-2. It’s performant. Specifically, when you navigate between different paths that match the same `<Route/>` with only params or the query changing, you can get fine-grained updates to different parts of your app without rerendering. For example, navigating between different contacts in our contact-list example does a targeted update to the name field (and eventually contact info) without needing to replace or rerender the wrapping `<Contact/>`. This is what fine-grained reactivity is for.
+1. 它是正确的，即它迫使你考虑这些情况，“如果用户没有为此查询字段传递值怎么办？如果他们传递了一个无效的值怎么办？”
+2. 它具有高性能。具体来说，当你导航到与同一个 `<Route/>` 匹配的不同路径时，只有参数或查询发生了变化，你可以在不重新渲染的情况下对应用程序的不同部分进行细粒度更新。例如，在我们联系人列表示例中，在不同联系人之间导航会对名称字段（最终是联系信息）进行有针对性的更新，而无需替换或重新渲染包装的 `<Contact/>`。这就是细粒度响应式的作用。
 
-> This is the same example from the previous section. The router is such an integrated system that it makes sense to provide a single example highlighting multiple features, even if we haven’t explained them all yet.
+> 这与上一节的示例相同。路由器是一个如此集成的系统，以至于提供一个单独的示例来突出多个功能是有意义的，即使我们还没有解释所有功能。
 
-```admonish sandbox title="Live example" collapsible=true
+```admonish sandbox title="实时示例" collapsible=true
 
-[Click to open CodeSandbox.](https://codesandbox.io/p/sandbox/16-router-0-5-4xp4zz?file=%2Fsrc%2Fmain.rs%3A102%2C2)
+[点击打开 CodeSandbox.](https://codesandbox.io/p/sandbox/16-router-0-5-4xp4zz?file=%2Fsrc%2Fmain.rs%3A102%2C2)
 
 <noscript>
-  Please enable JavaScript to view examples.
+  请启用 JavaScript 来查看示例。
 </noscript>
 
 <template>
@@ -97,7 +97,7 @@ This can get a little messy: deriving a signal that wraps an `Option<_>` or `Res
 ```
 
 <details>
-<summary>CodeSandbox Source</summary>
+<summary>CodeSandbox 源码</summary>
 
 ```rust
 use leptos::*;
@@ -108,10 +108,10 @@ fn App() -> impl IntoView {
     view! {
         <Router>
             <h1>"Contact App"</h1>
-            // this <nav> will show on every routes,
-            // because it's outside the <Routes/>
-            // note: we can just use normal <a> tags
-            // and the router will use client-side navigation
+            // 这个 <nav> 将显示在每个路由上，
+            // 因为它在 <Routes/> 之外
+            // 注意：我们可以只使用普通的 <a> 标签
+            // 路由器将使用客户端导航
             <nav>
                 <h2>"Navigation"</h2>
                 <a href="/">"Home"</a>
@@ -119,16 +119,16 @@ fn App() -> impl IntoView {
             </nav>
             <main>
                 <Routes>
-                    // / just has an un-nested "Home"
+                    // / 只有一个未嵌套的 "Home"
                     <Route path="/" view=|| view! {
                         <h3>"Home"</h3>
                     }/>
-                    // /contacts has nested routes
+                    // /contacts 有嵌套路由
                     <Route
                         path="/contacts"
                         view=ContactList
                       >
-                        // if no id specified, fall back
+                        // 如果没有指定 id，则回退
                         <Route path=":id" view=ContactInfo>
                             <Route path="" view=|| view! {
                                 <div class="tab">
@@ -141,7 +141,7 @@ fn App() -> impl IntoView {
                                 </div>
                             }/>
                         </Route>
-                        // if no id specified, fall back
+                        // 如果没有指定 id，则回退
                         <Route path="" view=|| view! {
                             <div class="select-user">
                                 "Select a user to view contact info."
@@ -158,7 +158,7 @@ fn App() -> impl IntoView {
 fn ContactList() -> impl IntoView {
     view! {
         <div class="contact-list">
-            // here's our contact list component itself
+            // 这是我们的联系人列表组件本身
             <div class="contact-list-contacts">
                 <h3>"Contacts"</h3>
                 <A href="alice">"Alice"</A>
@@ -166,9 +166,8 @@ fn ContactList() -> impl IntoView {
                 <A href="steve">"Steve"</A>
             </div>
 
-            // <Outlet/> will show the nested child route
-            // we can position this outlet wherever we want
-            // within the layout
+            // <Outlet/> 将显示嵌套的子路由
+            // 我们可以将此出口放置在布局中的任何位置
             <Outlet/>
         </div>
     }
@@ -176,11 +175,11 @@ fn ContactList() -> impl IntoView {
 
 #[component]
 fn ContactInfo() -> impl IntoView {
-    // we can access the :id param reactively with `use_params_map`
+    // 我们可以使用 `use_params_map` 以响应式方式访问 :id 参数
     let params = use_params_map();
     let id = move || params.with(|params| params.get("id").cloned().unwrap_or_default());
 
-    // imagine we're loading data from an API here
+    // 假设我们在这里从 API 加载数据
     let name = move || match id().as_str() {
         "alice" => "Alice",
         "bob" => "Bob",
@@ -196,8 +195,8 @@ fn ContactInfo() -> impl IntoView {
                 <A href="conversations">"Conversations"</A>
             </div>
 
-            // <Outlet/> here is the tabs that are nested
-            // underneath the /contacts/:id route
+            // 这里的 <Outlet/> 是嵌套在
+            // /contacts/:id 路由下的选项卡
             <Outlet/>
         </div>
     }

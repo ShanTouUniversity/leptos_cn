@@ -1,26 +1,26 @@
-# Wrapping Up Part 1: Client-Side Rendering
+# 第一部分总结：客户端渲染
 
-So far, everything we’ve written has been rendered almost entirely in the browser. When we create an app using Trunk, it’s served using a local development server. If you build it for production and deploy it, it’s served by whatever server or CDN you’re using. In either case, what’s served is an HTML page with
+到目前为止，我们编写的所有内容几乎完全在浏览器中渲染。当我们使用 Trunk 创建应用程序时，它使用本地开发服务器提供服务。如果你构建它用于生产并部署它，它将由你正在使用的任何服务器或 CDN 提供服务。无论哪种情况，提供服务的都是一个 HTML 页面，其中包含
 
-1. the URL of your Leptos app, which has been compiled to WebAssembly (WASM)
-2. the URL of the JavaScript used to initialize this WASM blob
-3. an empty `<body>` element
+1. 你的 Leptos 应用程序的 URL，该应用程序已编译为 WebAssembly (WASM)
+2. 用于初始化此 WASM blob 的 JavaScript 的 URL
+3. 一个空的 `<body>` 元素
 
-When the JS and WASM have loaded, Leptos will render your app into the `<body>`. This means that nothing appears on the screen until JS/WASM have loaded and run. This has some drawbacks:
+当 JS 和 WASM 加载完成后，Leptos 会将你的应用程序渲染到 `<body>` 中。这意味着在 JS/WASM 加载并运行之前，屏幕上不会显示任何内容。这有一些缺点：
 
-1. It increases load time, as your user’s screen is blank until additional resources have been downloaded.
-2. It’s bad for SEO, as load times are longer and the HTML you serve has no meaningful content.
-3. It’s broken for users for whom JS/WASM don’t load for some reason (e.g., they’re on a train and just went into a tunnel before WASM finished loading; they’re using an older device that doesn’t support WASM; they have JavaScript or WASM turned off for some reason; etc.)
+1. 它会增加加载时间，因为在下载其他资源之前，用户的屏幕是空白的。
+2. 它不利于 SEO，因为加载时间更长，并且你提供的 HTML 没有有意义的内容。
+3. 对于由于某种原因无法加载 JS/WASM 的用户来说，它是坏掉的（例如，他们在火车上，在 WASM 完成加载之前刚进入隧道；他们使用的是不支持 WASM 的旧设备；他们由于某种原因关闭了 JavaScript 或 WASM；等等）
 
-These downsides apply across the web ecosystem, but especially to WASM apps.
+这些缺点适用于整个 Web 生态系统，尤其是 WASM 应用程序。
 
-However, depending on the requirements of your project, you may be fine with these limitations.
+但是，根据你的项目要求，你可能可以接受这些限制。
 
-If you just want to deploy your Client-Side Rendered website, skip ahead to the chapter on ["Deployment"](https://leptos-rs.github.io/leptos/deployment/index.html) - there, you'll find directions on how best to deploy your Leptos CSR site.
+如果你只是想部署你的客户端渲染网站，请跳到关于 [“部署”](https://leptos-rs.github.io/leptos/deployment/index.html) 的章节——在那里，你将找到有关如何最好地部署你的 Leptos CSR 网站的说明。
 
 
-But what do you do if you want to return more than just an empty `<body>` tag in your `index.html` page? Use “Server-Side Rendering”!
+但是，如果你想在 `index.html` 页面中返回的不仅仅是一个空的 `<body>` 标签，该怎么办？使用“服务器端渲染”！
 
-Whole books could be (and probably have been) written about this topic, but at its core, it’s really simple: rather than returning an empty `<body>` tag, with SSR, you'll return an initial HTML page that reflects the actual starting state of your app or site, so that while JS/WASM are loading, and until they load, the user can access the plain HTML version.
+关于这个主题可以（并且可能已经）写出整本书，但它的核心非常简单：在 SSR 中，你将返回一个初始 HTML 页面，该页面反映了你的应用程序或站点的实际起始状态，而不是返回一个空的 `<body>` 标签，这样在 JS/WASM 加载期间，以及直到它们加载完成，用户都可以访问纯 HTML 版本。
 
-Part 2 of this book, on Leptos SSR, will cover this topic in some detail!
+本书的第二部分，关于 Leptos SSR，将详细介绍这个主题！
