@@ -1,59 +1,59 @@
-# Hydration Bugs _(and how to avoid them)_
+# 水合错误（以及如何避免它们）
 
-## A Thought Experiment
+## 一个思想实验
 
-Let’s try an experiment to test your intuitions. Open up an app you’re server-rendering with `cargo-leptos`. (If you’ve just been using `trunk` so far to play with examples, go [clone a `cargo-leptos` template](./21_cargo_leptos.md) just for the sake of this exercise.)
+让我们尝试一个实验来测试你的直觉。打开你使用 `cargo-leptos` 进行服务器端渲染的应用程序。（如果你到目前为止一直在使用 `trunk` 来玩示例，为了这个练习，请去[克隆一个 `cargo-leptos` 模板](./21_cargo_leptos.md)。）
 
-Put a log somewhere in your root component. (I usually call mine `<App/>`, but anything will do.)
+在你的根组件的某个地方放置一个日志。（我通常称之为 `<App/>`，但任何东西都可以。）
 
 ```rust
 #[component]
 pub fn App() -> impl IntoView {
-	logging::log!("where do I run?");
-	// ... whatever
+	logging::log!("我在哪里运行？");
+	// ... 任何内容
 }
 ```
 
-And let’s fire it up
+让我们启动它
 
 ```bash
 cargo leptos watch
 ```
 
-Where do you expect `where do I run?` to log?
+你希望 `我在哪里运行？` 记录在哪里？
 
-- In the command line where you’re running the server?
-- In the browser console when you load the page?
-- Neither?
-- Both?
+- 在你运行服务器的命令行中？
+- 在你加载页面时的浏览器控制台中？
+- 两者都不是？
+- 两者都是？
 
-Try it out.
-
-...
+试一试。
 
 ...
 
 ...
 
-Okay, consider the spoiler alerted.
+...
 
-You’ll notice of course that it logs in both places, assuming everything goes according to plan. In fact on the server it logs twice—first during the initial server startup, when Leptos renders your app once to extract the route tree, then a second time when you make a request. Each time you reload the page, `where do I run?` should log once on the server and once on the client.
+好的，考虑一下剧透警报。
 
-If you think about the description in the last couple sections, hopefully this makes sense. Your application runs once on the server, where it builds up a tree of HTML which is sent to the client. During this initial render, `where do I run?` logs on the server.
+你当然会注意到它在两个地方都记录了，假设一切按计划进行。实际上，它在服务器上记录了两次——第一次是在初始服务器启动期间，当 Leptos 渲染你的应用程序一次以提取路由树时，然后在你发出请求时第二次。每次重新加载页面时，`我在哪里运行？` 应该在服务器上记录一次，在客户端上记录一次。
 
-Once the WASM binary has loaded in the browser, your application runs a second time, walking over the same user interface tree and adding interactivity.
+如果你回想一下最后几节中的描述，希望这很有道理。你的应用程序在服务器上运行一次，它在那里构建一个 HTML 树，然后发送到客户端。在此初始渲染期间，`我在哪里运行？` 在服务器上记录。
 
-> Does that sound like a waste? It is, in a sense. But reducing that waste is a genuinely hard problem. It’s what some JS frameworks like Qwik are intended to solve, although it’s probably too early to tell whether it’s a net performance gain as opposed to other approaches.
+一旦 WASM 二进制文件在浏览器中加载完成，你的应用程序将第二次运行，遍历同一个用户界面树并添加交互性。
 
-## The Potential for Bugs
+> 这听起来像是一种浪费吗？从某种意义上说，确实如此。但减少这种浪费是一个真正困难的问题。这就是像 Qwik 这样的一些 JS 框架旨在解决的问题，尽管现在判断它与其他方法相比是否能带来净性能提升还为时过早。
 
-Okay, hopefully all of that made sense. But what does it have to do with the title of this chapter, which is “Hydration bugs (and how to avoid them)”?
+## 错误的可能性
 
-Remember that the application needs to run on both the server and the client. This generates a few different sets of potential issues you need to know how to avoid.
+好的，希望所有这些都有意义。但它与本章标题“水合错误（以及如何避免它们）”有什么关系？
 
-### Mismatches between server and client code
+请记住，应用程序需要在服务器和客户端上运行。这会产生几组不同的潜在问题，你需要知道如何避免它们。
 
-One way to create a bug is by creating a mismatch between the HTML that’s sent down by the server and what’s rendered on the client. It’s actually fairly hard to do this unintentionally, I think (at least judging by the bug reports I get from people.) But imagine I do something like this
+### 服务器和客户端代码之间的不匹配
+
+创建错误的一种方法是在服务器发送的 HTML 和客户端渲染的内容之间创建不匹配。我认为这样做是相当困难的（至少从我收到的错误报告来看）。但想象一下，我做了这样的事情
 
 ```rust
 #[component]
@@ -69,47 +69,47 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-In other words, if this is being compiled to WASM, it has three items; otherwise it’s empty.
+换句话说，如果它被编译为 WASM，它有三个项目；否则它是空的。
 
-When I load the page in the browser, I see nothing. If I open the console I see a bunch of warnings:
+当我在浏览器中加载页面时，我什么也看不到。如果我打开控制台，我会看到一堆警告：
 
 ```
-element with id 0-3 not found, ignoring it for hydration
-element with id 0-4 not found, ignoring it for hydration
-element with id 0-5 not found, ignoring it for hydration
-component with id _0-6c not found, ignoring it for hydration
-component with id _0-6o not found, ignoring it for hydration
+找不到 id 为 0-3 的元素，忽略它进行水合
+找不到 id 为 0-4 的元素，忽略它进行水合
+找不到 id 为 0-5 的元素，忽略它进行水合
+找不到 id 为 _0-6c 的组件，忽略它进行水合
+找不到 id 为 _0-6o 的组件，忽略它进行水合
 ```
 
-The WASM version of your app, running in the browser, expects to find three items; but the HTML has none.
+在浏览器中运行的你的应用程序的 WASM 版本希望找到三个项目；但 HTML 中没有。
 
-#### Solution
+#### 解决方案
 
-It’s pretty rare that you do this intentionally, but it could happen from somehow running different logic on the server and in the browser. If you’re seeing warnings like this and you don’t think it’s your fault, it’s much more likely that it’s a bug with `<Suspense/>` or something. Feel free to go ahead and open an [issue](https://github.com/leptos-rs/leptos/issues) or [discussion](https://github.com/leptos-rs/leptos/discussions) on GitHub for help.
+你很少会故意这样做，但它可能会在服务器和浏览器中以某种方式运行不同的逻辑时发生。如果你看到这样的警告，并且你认为这不是你的错，那么更有可能是 `<Suspense/>` 或其他东西的错误。请随意在 GitHub 上打开 [问题](https://github.com/leptos-rs/leptos/issues) 或 [讨论](https://github.com/leptos-rs/leptos/discussions) 以获得帮助。
 
-### Not all client code can run on the server
+### 并非所有客户端代码都可以在服务器上运行
 
-Imagine you happily import a dependency like `gloo-net` that you’ve been used to using to make requests in the browser, and use it in a `create_resource` in a server-rendered app.
+想象一下，你很高兴地导入了一个像 `gloo-net` 这样的依赖项，你已经习惯于在浏览器中使用它来发出请求，并在服务器端渲染的应用程序中的 `create_resource` 中使用它。
 
-You’ll probably instantly see the dreaded message
+你可能会立即看到可怕的消息
 
 ```
 panicked at 'cannot call wasm-bindgen imported functions on non-wasm targets'
 ```
 
-Uh-oh.
+哦，哦。
 
-But of course this makes sense. We’ve just said that your app needs to run on the client and the server.
+但当然，这很有道理。我们刚刚说过，你的应用程序需要在客户端和服务器上运行。
 
-#### Solution
+#### 解决方案
 
-There are a few ways to avoid this:
+有几种方法可以避免这种情况：
 
-1. Only use libraries that can run on both the server and the client. [`reqwest`](https://docs.rs/reqwest/latest/reqwest/), for example, works for making HTTP requests in both settings.
-2. Use different libraries on the server and the client, and gate them using the `#[cfg]` macro. ([Click here for an example](https://github.com/leptos-rs/leptos/blob/main/examples/hackernews/src/api.rs).)
-3. Wrap client-only code in `create_effect`. Because `create_effect` only runs on the client, this can be an effective way to access browser APIs that are not needed for initial rendering.
+1. 仅使用可以在服务器和客户端上运行的库。例如，[`reqwest`](https://docs.rs/reqwest/latest/reqwest/) 适用于在两种环境中发出 HTTP 请求。
+2. 在服务器和客户端上使用不同的库，并使用 `#[cfg]` 宏来区分它们。([点击这里查看示例](https://github.com/leptos-rs/leptos/blob/main/examples/hackernews/src/api.rs)。)
+3. 将仅限客户端的代码包装在 `create_effect` 中。因为 `create_effect` 仅在客户端运行，所以这可以是访问初始渲染不需要的浏览器 API 的有效方法。
 
-For example, say that I want to store something in the browser’s `localStorage` whenever a signal changes.
+例如，假设我想在信号发生变化时将某些内容存储在浏览器的 `localStorage` 中。
 
 ```rust
 #[component]
@@ -120,9 +120,9 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-This panics because I can’t access `LocalStorage` during server rendering.
+这会恐慌，因为我无法在服务器端渲染期间访问 `LocalStorage`。
 
-But if I wrap it in an effect...
+但如果我把它包装在一个效果中...
 
 ```rust
 #[component]
@@ -135,14 +135,14 @@ pub fn App() -> impl IntoView {
 }
 ```
 
-It’s fine! This will render appropriately on the server, ignoring the client-only code, and then access the storage and log a message on the browser.
+就好了！这将在服务器上正确渲染，忽略仅限客户端的代码，然后在浏览器上访问存储并记录一条消息。
 
-### Not all server code can run on the client
+### 并非所有服务器代码都可以在客户端上运行
 
-WebAssembly running in the browser is a pretty limited environment. You don’t have access to a file-system or to many of the other things the standard library may be used to having. Not every crate can even be compiled to WASM, let alone run in a WASM environment.
+在浏览器中运行的 WebAssembly 是一个相当有限的环境。你无法访问文件系统或标准库可能习惯使用的许多其他东西。并非每个 crate 都可以编译为 WASM，更不用说在 WASM 环境中运行了。
 
-In particular, you’ll sometimes see errors about the crate `mio` or missing things from `core`. This is generally a sign that you are trying to compile something to WASM that can’t be compiled to WASM. If you’re adding server-only dependencies, you’ll want to mark them `optional = true` in your `Cargo.toml` and then enable them in the `ssr` feature definition. (Check out one of the template `Cargo.toml` files to see more details.)
+特别是，你有时会看到有关 crate `mio` 的错误或 `core` 中缺少的东西。这通常表明你正在尝试将某些不能编译为 WASM 的内容编译为 WASM。如果你要添加仅限服务器的依赖项，你将希望在你的 `Cargo.toml` 中将它们标记为 `optional = true`，然后在 `ssr` 功能定义中启用它们。（查看其中一个模板 `Cargo.toml` 文件以查看更多详细信息。）
 
-You can use `create_effect` to specify that something should only run on the client, and not in the server. Is there a way to specify that something should run only on the server, and not the client?
+你可以使用 `create_effect` 来指定某些内容只能在客户端运行，而不能在服务器上运行。有没有办法指定某些内容只能在服务器上运行，而不能在客户端上运行？
 
-In fact, there is. The next chapter will cover the topic of server functions in some detail. (In the meantime, you can check out their docs [here](https://docs.rs/leptos_server/latest/leptos_server/index.html).)
+实际上，有。下一章将详细介绍服务器函数的主题。（同时，你可以 [在此处](https://docs.rs/leptos_server/latest/leptos_server/index.html) 查看它们的文档。）

@@ -1,93 +1,93 @@
-# Async Rendering and SSR “Modes”
+# 异步渲染和 SSR“模式”
 
-Server-rendering a page that uses only synchronous data is pretty simple: You just walk down the component tree, rendering each element to an HTML string. But this is a pretty big caveat: it doesn’t answer the question of what we should do with pages that includes asynchronous data, i.e., the sort of stuff that would be rendered under a `<Suspense/>` node on the client.
+服务器端渲染仅使用同步数据的页面非常简单：你只需遍历组件树，将每个元素渲染为 HTML 字符串。但这是一个很大的警告：它没有回答我们应该如何处理包含异步数据的页面，即在客户端的 `<Suspense/>` 节点下渲染的内容。
 
-When a page loads async data that it needs to render, what should we do? Should we wait for all the async data to load, and then render everything at once? (Let’s call this “async” rendering) Should we go all the way in the opposite direction, just sending the HTML we have immediately down to the client and letting the client load the resources and fill them in? (Let’s call this “synchronous” rendering) Or is there some middle-ground solution that somehow beats them both? (Hint: There is.)
+当页面加载它需要渲染的异步数据时，我们应该怎么做？我们应该等待所有异步数据加载完成，然后一次渲染所有内容吗？（我们称之为“异步”渲染）我们应该走完全相反的方向，立即将我们拥有的 HTML 发送给客户端，并让客户端加载资源并填充它们吗？（我们称之为“同步”渲染）或者是否有一些中间解决方案可以以某种方式同时胜过它们？（提示：有。）
 
-If you’ve ever listened to streaming music or watched a video online, I’m sure you realize that HTTP supports streaming, allowing a single connection to send chunks of data one after another without waiting for the full content to load. You may not realize that browsers are also really good at rendering partial HTML pages. Taken together, this means that you can actually enhance your users’ experience by **streaming HTML**: and this is something that Leptos supports out of the box, with no configuration at all. And there’s actually more than one way to stream HTML: you can stream the chunks of HTML that make up your page in order, like frames of a video, or you can stream them... well, out of order.
+如果你曾经在线听过流媒体音乐或观看过视频，我确信你知道 HTTP 支持流式传输，允许单个连接一个接一个地发送数据块，而无需等待完整内容加载完成。你可能没有意识到浏览器也非常擅长渲染部分 HTML 页面。综上所述，这意味着你可以通过**流式传输 HTML** 来增强用户的体验：这是 Leptos 开箱即用支持的，根本无需配置。实际上，流式传输 HTML 的方法不止一种：你可以像视频帧一样按顺序流式传输构成你页面的 HTML 块，或者你可以流式传输它们... 好吧，乱序。
 
-Let me say a little more about what I mean.
+让我详细说明我的意思。
 
-Leptos supports all the major ways of rendering HTML that includes asynchronous data:
+Leptos 支持所有主要的渲染包含异步数据的 HTML 的方法：
 
-1. [Synchronous Rendering](#synchronous-rendering)
-1. [Async Rendering](#async-rendering)
-1. [In-Order streaming](#in-order-streaming)
-1. [Out-of-Order Streaming](#out-of-order-streaming) (and a partially-blocked variant)
+1. [同步渲染](#synchronous-rendering)
+2. [异步渲染](#async-rendering)
+3. [顺序流式传输](#in-order-streaming)
+4. [乱序流式传输](#out-of-order-streaming)（以及部分阻塞的变体）
 
-## Synchronous Rendering
+## 同步渲染
 
-1. **Synchronous**: Serve an HTML shell that includes `fallback` for any `<Suspense/>`. Load data on the client using `create_local_resource`, replacing `fallback` once resources are loaded.
+1. **同步**：为任何 `<Suspense/>` 提供一个包含 `fallback` 的 HTML 外壳。使用 `create_local_resource` 在客户端加载数据，并在加载资源后替换 `fallback`。
 
-- _Pros_: App shell appears very quickly: great TTFB (time to first byte).
-- _Cons_
-  - Resources load relatively slowly; you need to wait for JS + WASM to load before even making a request.
-  - No ability to include data from async resources in the `<title>` or other `<meta>` tags, hurting SEO and things like social media link previews.
+- _优点_：应用程序外壳出现得非常快：TTFB（首字节时间）很棒。
+- _缺点_
+  - 资源加载相对较慢；你需要等待 JS + WASM 加载完成后才能发出请求。
+  - 无法在 `<title>` 或其他 `<meta>` 标签中包含来自异步资源的数据，这会损害 SEO 和社交媒体链接预览等内容。
 
-If you’re using server-side rendering, the synchronous mode is almost never what you actually want, from a performance perspective. This is because it misses out on an important optimization. If you’re loading async resources during server rendering, you can actually begin loading the data on the server. Rather than waiting for the client to receive the HTML response, then loading its JS + WASM, _then_ realize it needs the resources and begin loading them, server rendering can actually begin loading the resources when the client first makes the response. In this sense, during server rendering an async resource is like a `Future` that begins loading on the server and resolves on the client. As long as the resources are actually serializable, this will always lead to a faster total load time.
+如果你使用的是服务器端渲染，从性能的角度来看，同步模式几乎从来都不是你真正想要的。这是因为它错过了一个重要的优化。如果你在服务器端渲染期间加载异步资源，你实际上可以在服务器上开始加载数据。服务器端渲染实际上可以在客户端首次发出响应时开始加载资源，而不是等待客户端接收 HTML 响应，然后加载其 JS + WASM，*然后*意识到它需要资源并开始加载它们。从这个意义上说，在服务器端渲染期间，异步资源就像一个在服务器上开始加载并在客户端解析的 `Future`。只要资源实际上是可序列化的，这将始终导致更快的总加载时间。
 
-> This is why [`create_resource`](https://docs.rs/leptos/latest/leptos/fn.create_resource.html) requires resources data to be serializable by default, and why you need to explicitly use [`create_local_resource`](https://docs.rs/leptos/latest/leptos/fn.create_local_resource.html) for any async data that is not serializable and should therefore only be loaded in the browser itself. Creating a local resource when you could create a serializable resource is always a deoptimization.
+> 这就是为什么 [`create_resource`](https://docs.rs/leptos/latest/leptos/fn.create_resource.html) 默认要求资源数据可序列化，以及为什么你需要为任何不可序列化的异步数据显式使用 [`create_local_resource`](https://docs.rs/leptos/latest/leptos/fn.create_local_resource.html)，因此这些数据只能在浏览器本身中加载。当你能够创建可序列化资源时创建本地资源始终是一种反优化。
 
-## Async Rendering
+## 异步渲染
 
 <video controls>
 	<source src="https://github.com/leptos-rs/leptos/blob/main/docs/video/async.mov?raw=true" type="video/mp4">
 </video>
 
-2. **`async`**: Load all resources on the server. Wait until all data are loaded, and render HTML in one sweep.
+2. **`async`**：在服务器上加载所有资源。等待所有数据加载完成，然后一次性渲染 HTML。
 
-- _Pros_: Better handling for meta tags (because you know async data even before you render the `<head>`). Faster complete load than **synchronous** because async resources begin loading on server.
-- _Cons_: Slower load time/TTFB: you need to wait for all async resources to load before displaying anything on the client. The page is totally blank until everything is loaded.
+- _优点_：更好地处理元标签（因为你甚至在渲染 `<head>` 之前就知道异步数据）。由于异步资源开始在服务器上加载，因此完成加载速度比**同步**快。
+- _缺点_：加载时间/TTFB 较慢：你需要等待所有异步资源加载完成后才能在客户端上显示任何内容。在所有内容加载完成之前，页面完全空白。
 
-## In-Order Streaming
+## 顺序流式传输
 
 <video controls>
 	<source src="https://github.com/leptos-rs/leptos/blob/main/docs/video/in-order.mov?raw=true" type="video/mp4">
 </video>
 
-3. **In-order streaming**: Walk through the component tree, rendering HTML until you hit a `<Suspense/>`. Send down all the HTML you’ve got so far as a chunk in the stream, wait for all the resources accessed under the `<Suspense/>` to load, then render it to HTML and keep walking until you hit another `<Suspense/>` or the end of the page.
+3. **顺序流式传输**：遍历组件树，渲染 HTML，直到遇到 `<Suspense/>`。将到目前为止你得到的所有 HTML 作为流中的一个块发送，等待 `<Suspense/>` 下访问的所有资源加载完成，然后将其渲染为 HTML 并继续遍历，直到遇到另一个 `<Suspense/>` 或页面末尾。
 
-- _Pros_: Rather than a blank screen, shows at least _something_ before the data are ready.
-- _Cons_
-  - Loads the shell more slowly than synchronous rendering (or out-of-order streaming) because it needs to pause at every `<Suspense/>`.
-  - Unable to show fallback states for `<Suspense/>`.
-  - Can’t begin hydration until the entire page has loaded, so earlier pieces of the page will not be interactive until the suspended chunks have loaded.
+- _优点_：在数据准备好之前，至少显示_一些东西_，而不是空白屏幕。
+- _缺点_
+  - 加载外壳的速度比同步渲染（或乱序流式传输）慢，因为它需要在每个 `<Suspense/>` 处暂停。
+  - 无法显示 `<Suspense/>` 的回退状态。
+  - 在整个页面加载完成之前无法开始水合，因此页面的早期部分在暂停的块加载完成之前将不会是交互式的。
 
-## Out-of-Order Streaming
+## 乱序流式传输
 
 <video controls>
 	<source src="https://github.com/leptos-rs/leptos/blob/main/docs/video/out-of-order.mov?raw=true" type="video/mp4">
 </video>
 
-4. **Out-of-order streaming**: Like synchronous rendering, serve an HTML shell that includes `fallback` for any `<Suspense/>`. But load data on the **server**, streaming it down to the client as it resolves, and streaming down HTML for `<Suspense/>` nodes, which is swapped in to replace the fallback.
+4. **乱序流式传输**：与同步渲染类似，为任何 `<Suspense/>` 提供一个包含 `fallback` 的 HTML 外壳。但在**服务器**上加载数据，并在解析时将其流式传输到客户端，并为 `<Suspense/>` 节点流式传输 HTML，该节点将被交换以替换回退内容。
 
-- _Pros_: Combines the best of **synchronous** and **`async`**.
-  - Fast initial response/TTFB because it immediately sends the whole synchronous shell
-  - Fast total time because resources begin loading on the server.
-  - Able to show the fallback loading state and dynamically replace it, instead of showing blank sections for un-loaded data.
-- _Cons_: Requires JavaScript to be enabled for suspended fragments to appear in correct order. (This small chunk of JS streamed down in a `<script>` tag alongside the `<template>` tag that contains the rendered `<Suspense/>` fragment, so it does not need to load any additional JS files.)
+- _优点_：结合了**同步**和**`async`**的优点。
+  - 由于它立即发送整个同步外壳，因此初始响应/TTFB 很快
+  - 由于资源开始在服务器上加载，因此总时间很快。
+  - 能够显示回退加载状态并动态替换它，而不是为未加载的数据显示空白部分。
+- _缺点_：需要启用 JavaScript 才能使暂停的片段按正确顺序显示。（这小段 JS 与包含渲染的 `<Suspense/>` 片段的 `<template>` 标签一起流式传输到 `<script>` 标签中，因此它不需要加载任何额外的 JS 文件。）
 
-5. **Partially-blocked streaming**: “Partially-blocked” streaming is useful when you have multiple separate `<Suspense/>` components on the page.  It is triggered by setting `ssr=SsrMode::PartiallyBlocked` on a route, and depending on blocking resources within the view.   If one of the `<Suspense/>` components reads from one or more “blocking resources” (see below), the fallback will not be sent; rather, the server will wait until that `<Suspense/>` has resolved and then replace the fallback with the resolved fragment on the server, which means that it is included in the initial HTML response and appears even if JavaScript is disabled or not supported. Other `<Suspense/>` stream in out of order, similar to the `SsrMode::OutOfOrder` default.
+5. **部分阻塞流式传输**：当你页面上有多个独立的 `<Suspense/>` 组件时，“部分阻塞”流式传输很有用。通过在路由上设置 `ssr=SsrMode::PartiallyBlocked` 并根据视图中的阻塞资源来触发它。如果 `<Suspense/>` 组件之一读取一个或多个“阻塞资源”（见下文），则不会发送回退内容；相反，服务器将等待该 `<Suspense/>` 解析完成，然后在服务器上将回退内容替换为已解析的片段，这意味着它包含在初始 HTML 响应中，即使禁用了 JavaScript 或不支持 JavaScript 也会出现。其他 `<Suspense/>` 以乱序流式传输，类似于 `SsrMode::OutOfOrder` 默认值。
 
-This is useful when you have multiple `<Suspense/>` on the page, and one is more important than the other: think of a blog post and comments, or product information and reviews. It is _not_ useful if there’s only one `<Suspense/>`, or if every `<Suspense/>` reads from blocking resources. In those cases it is a slower form of `async` rendering.
+当你页面上有多个 `<Suspense/>`，并且一个比另一个更重要时，这很有用：想想一篇博客文章和评论，或者产品信息和评论。如果只有一个 `<Suspense/>`，或者每个 `<Suspense/>` 都从阻塞资源中读取，则它*没有用处*。在这些情况下，它是 `async` 渲染的一种较慢的形式。
 
-- _Pros_: Works if JavaScript is disabled or not supported on the user’s device.
-- _Cons_
-  - Slower initial response time than out-of-order.
-  - Marginally overall response due to additional work on the server.
-  - No fallback state shown.
+- _优点_：如果在用户的设备上禁用了 JavaScript 或不支持 JavaScript，则有效。
+- _缺点_
+  - 初始响应时间比乱序慢。
+  - 由于服务器上的额外工作，总体响应略有延迟。
+  - 不显示回退状态。
 
-## Using SSR Modes
+## 使用 SSR 模式
 
-Because it offers the best blend of performance characteristics, Leptos defaults to out-of-order streaming. But it’s really simple to opt into these different modes. You do it by adding an `ssr` property onto one or more of your `<Route/>` components, like in the [`ssr_modes` example](https://github.com/leptos-rs/leptos/blob/main/examples/ssr_modes/src/app.rs).
+因为它提供了性能特征的最佳组合，所以 Leptos 默认使用乱序流式传输。但是选择这些不同的模式真的很简单。你可以通过在你的一个或多个 `<Route/>` 组件上添加 `ssr` 属性来实现，就像在 [`ssr_modes` 示例](https://github.com/leptos-rs/leptos/blob/main/examples/ssr_modes/src/app.rs) 中一样。
 
 ```rust
 <Routes>
-	// We’ll load the home page with out-of-order streaming and <Suspense/>
+	// 我们将使用乱序流式传输和 `<Suspense/>` 加载主页
 	<Route path="" view=HomePage/>
 
-	// We'll load the posts with async rendering, so they can set
-	// the title and metadata *after* loading the data
+	// 我们将使用异步渲染加载帖子，以便它们可以在加载数据*后*设置
+	// 标题和元数据
 	<Route
 		path="/post/:id"
 		view=Post
@@ -96,23 +96,23 @@ Because it offers the best blend of performance characteristics, Leptos defaults
 </Routes>
 ```
 
-For a path that includes multiple nested routes, the most restrictive mode will be used: i.e., if even a single nested route asks for `async` rendering, the whole initial request will be rendered `async`. `async` is the most restricted requirement, followed by in-order, and then out-of-order. (This probably makes sense if you think about it for a few minutes.)
+对于包含多个嵌套路由的路径，将使用最严格的模式：即，如果即使单个嵌套路由请求 `async` 渲染，整个初始请求也将以 `async` 方式渲染。`async` 是最严格的要求，其次是顺序，然后是乱序。（如果你仔细想想，这可能是合理的。）
 
-## Blocking Resources
+## 阻塞资源
 
-Any Leptos versions later than `0.2.5` (i.e., git main and `0.3.x` or later) introduce a new resource primitive with `create_blocking_resource`. A blocking resource still loads asynchronously like any other `async`/`.await` in Rust; it doesn’t block a server thread or anything. Instead, reading from a blocking resource under a `<Suspense/>` blocks the HTML _stream_ from returning anything, including its initial synchronous shell, until that `<Suspense/>` has resolved.
+任何晚于 `0.2.5` 的 Leptos 版本（即 git main 和 `0.3.x` 或更高版本）都引入了一个新的资源原语 `create_blocking_resource`。阻塞资源仍然像 Rust 中的任何其他 `async`/`.await` 一样异步加载；它不会阻塞服务器线程或任何东西。相反，在 `<Suspense/>` 下读取阻塞资源会阻止 HTML _流_ 返回任何内容，包括其初始同步外壳，直到该 `<Suspense/>` 解析完成。
 
-Now from a performance perspective, this is not ideal. None of the synchronous shell for your page will load until that resource is ready. However, rendering nothing means that you can do things like set the `<title>` or `<meta>` tags in your `<head>` in actual HTML. This sounds a lot like `async` rendering, but there’s one big difference: if you have multiple `<Suspense/>` sections, you can block on _one_ of them but still render a placeholder and then stream in the other.
+现在从性能的角度来看，这并不理想。你的页面的任何同步外壳都不会加载，直到该资源准备就绪。但是，不渲染任何内容意味着你可以执行以下操作，例如在实际 HTML 的 `<head>` 中设置 `<title>` 或 `<meta>` 标签。这听起来很像 `async` 渲染，但有一个很大的区别：如果你有多个 `<Suspense/>` 部分，你可以阻塞其中_一个_，但仍然渲染一个占位符，然后流式传输另一个。
 
-For example, think about a blog post. For SEO and for social sharing, I definitely want my blog post’s title and metadata in the initial HTML `<head>`. But I really don’t care whether comments have loaded yet or not; I’d like to load those as lazily as possible.
+例如，想想一篇博客文章。为了 SEO 和社交分享，我肯定希望我的博客文章的标题和元数据出现在初始 HTML `<head>` 中。但我真的不关心评论是否已经加载；我想尽可能延迟加载它们。
 
-With blocking resources, I can do something like this:
+使用阻塞资源，我可以执行以下操作：
 
 ```rust
 #[component]
 pub fn BlogPost() -> impl IntoView {
-	let post_data = create_blocking_resource(/* load blog post */);
-	let comments_data = create_resource(/* load blog comments */);
+	let post_data = create_blocking_resource(/* 加载博客文章 */);
+	let comments_data = create_resource(/* 加载博客评论 */);
 	view! {
 		<Suspense fallback=|| ()>
 			{move || {
@@ -121,30 +121,30 @@ pub fn BlogPost() -> impl IntoView {
 						<Title text=data.title/>
 						<Meta name="description" content=data.excerpt/>
 						<article>
-							/* render the post content */
+							/* 渲染帖子内容 */
 						</article>
 					}
 				})
 			}}
 		</Suspense>
 		<Suspense fallback=|| "Loading comments...">
-			/* render comments data here */
+			/* 在这里渲染评论数据 */
 		</Suspense>
 	}
 }
 ```
 
-The first `<Suspense/>`, with the body of the blog post, will block my HTML stream, because it reads from a blocking resource.  Meta tags and other head elements awaiting the blocking resource will be rendered before the stream is sent.
+第一个 `<Suspense/>`，包含博客文章的正文，将阻塞我的 HTML 流，因为它从阻塞资源中读取。元标签和其他等待阻塞资源的头部元素将在发送流之前渲染。
 
-Combined with the following route definition, which uses `SsrMode::PartiallyBlocked`, the blocking resource will be fully rendered on the server side, making it accessible to users who disable WebAssembly or JavaScript.
+与以下路由定义相结合，该定义使用 `SsrMode::PartiallyBlocked`，阻塞资源将在服务器端完全渲染，从而使禁用 WebAssembly 或 JavaScript 的用户可以访问它。
 
 ```rust
 <Routes>
-	// We’ll load the home page with out-of-order streaming and <Suspense/>
+	// 我们将使用乱序流式传输和 `<Suspense/>` 加载主页
 	<Route path="" view=HomePage/>
 
-	// We'll load the posts with async rendering, so they can set
-	// the title and metadata *after* loading the data
+	// 我们将使用异步渲染加载帖子，以便它们可以在加载数据*后*设置
+	// 标题和元数据
 	<Route
 		path="/post/:id"
 		view=Post
@@ -153,4 +153,4 @@ Combined with the following route definition, which uses `SsrMode::PartiallyBloc
 </Routes>
 ```
 
-The second `<Suspense/>`, with the comments, will not block the stream. Blocking resources gave me exactly the power and granularity I needed to optimize my page for SEO and user experience.
+第二个 `<Suspense/>`，包含评论，不会阻塞流。阻塞资源给了我优化页面 SEO 和用户体验所需的功能和粒度。

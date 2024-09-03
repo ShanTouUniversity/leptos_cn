@@ -1,17 +1,16 @@
-# Part 2: Server Side Rendering
+# 第二部分：服务器端渲染
 
-The second part of the book is all about how to turn your beautiful UIs into full-stack Rust + Leptos powered websites and applications.
+本书的第二部分是关于如何将你漂亮的 UI 变成全栈 Rust + Leptos 驱动的网站和应用程序。
 
-As you read in the last chapter, there are some limitations to using client-side rendered Leptos apps - over the next few chapters, you'll see how we can overcome those limitations
-and get the best performance and SEO out of your Leptos apps.
+正如你在上一章中读到的，使用客户端渲染的 Leptos 应用程序有一些限制——在接下来的几章中，你将看到我们如何克服这些限制，并从你的 Leptos 应用程序中获得最佳性能和 SEO。
 
 
 ```admonish info
 
-When working with Leptos on the server side, you're free to choose either the Actix-web or the Axum integrations - the full feature set of Leptos is available with either option.
+在服务器端使用 Leptos 时，你可以自由选择 Actix-web 或 Axum 集成——Leptos 的全部功能集在任何一个选项中都可用。
 
-If, however, you need deploy to a WinterCG-compatible runtime like Deno, Cloudflare, etc., then choose the Axum integration as this deployment option is only available with Axum on the server. Lastly, if you'd like to go full-stack WASM/WASI and deploy to WASM-based serverless runtimes, then Axum is your go-to choice here too.
+但是，如果你需要部署到与 WinterCG 兼容的运行时（如 Deno、Cloudflare 等），那么请选择 Axum 集成，因为此部署选项仅适用于服务器上的 Axum。最后，如果你想使用全栈 WASM/WASI 并部署到基于 WASM 的无服务器运行时，那么 Axum 也是你的首选。
 
-NB: this is a limitation of the web frameworks themselves, not Leptos.
+注意：这是 Web 框架本身的限制，而不是 Leptos 的限制。
 
 ```
