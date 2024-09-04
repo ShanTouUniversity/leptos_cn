@@ -1,30 +1,30 @@
-# Deploying a Client-Side-Rendered App
+# 部署客户端渲染的应用程序
 
-If you’ve been building an app that only uses client-side rendering, working with Trunk as a dev server and build tool, the process is quite easy.
+如果你一直在构建一个仅使用客户端渲染的应用程序，使用 Trunk 作为开发服务器和构建工具，那么这个过程非常简单。
 
 ```bash
 trunk build --release
 ```
 
-`trunk build` will create a number of build artifacts in a `dist/` directory. Publishing `dist` somewhere online should be all you need to deploy your app. This should work very similarly to deploying any JavaScript application.
+`trunk build` 将在 `dist/` 目录中创建许多构建工件。将 `dist` 发布到网上的某个地方应该是部署你的应用程序所需的全部内容。这应该与部署任何 JavaScript 应用程序非常相似。
 
-We've created several example repositories which show how to set up and deploy a Leptos CSR app to various hosting services.
+我们创建了几个示例存储库，展示了如何设置 Leptos CSR 应用程序并将其部署到各种托管服务。
 
-_Note: Leptos does not endorse the use of any particular hosting service - feel free to use any service that supports static site deploys._
+_注意：Leptos 不认可使用任何特定的托管服务——你可以随意使用任何支持静态站点部署的服务。_
 
-Examples:
+示例：
 
 - [Github Pages](#github-pages)
 - [Vercel](#vercel)
-- [Spin (serverless WebAssembly)](#spin---serverless-webassembly)
+- [Spin（无服务器 WebAssembly）](#spin---serverless-webassembly)
 
 ## Github Pages
 
-Deploying a Leptos CSR app to Github pages is a simple affair. First, go to your Github repo's settings and click on "Pages" in the left side menu. In the "Build and deployment" section of the page, change the "source" to "Github Actions". Then copy the following into a file such as `.github/workflows/gh-pages-deploy.yml`
+将 Leptos CSR 应用程序部署到 Github Pages 是一件很简单的事情。首先，转到你的 Github 仓库的设置，然后点击左侧菜单中的“页面”。在页面的“构建和部署”部分，将“来源”更改为“Github Actions”。然后将以下内容复制到文件 `.github/workflows/gh-pages-deploy.yml` 中
 
 ```admonish example collapsible=true
 
-	name: Release to Github Pages
+	name: 发布到 Github Pages
 
 	on:
 	push:
@@ -32,12 +32,12 @@ Deploying a Leptos CSR app to Github pages is a simple affair. First, go to your
 	workflow_dispatch:
 
 	permissions:
-	contents: write # for committing to gh-pages branch.
+	contents: write # 用于提交到 gh-pages 分支。
 	pages: write
 	id-token: write
 
-	# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-	# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+	# 只允许一个并发部署，跳过正在进行的运行和最新排队的运行之间排队的运行。
+	# 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成。
 	concurrency:
 	group: "pages"
 	cancel-in-progress: false
@@ -56,106 +56,106 @@ Deploying a Leptos CSR app to Github pages is a simple affair. First, go to your
 		steps:
 		- uses: actions/checkout@v4 # repo checkout
 
-		# Install Rust Nightly Toolchain, with Clippy & Rustfmt
-		- name: Install nightly Rust
+		# 使用 Clippy & Rustfmt 安装 Rust Nightly 工具链
+		- name: 安装 nightly Rust
 			uses: dtolnay/rust-toolchain@nightly
 			with:
 			components: clippy, rustfmt
 
-		- name: Add WASM target
+		- name: 添加 WASM 目标
 			run: rustup target add wasm32-unknown-unknown
 
 		- name: lint
 			run: cargo clippy & cargo fmt
 
 
-		# If using tailwind...
-		# - name: Download and install tailwindcss binary
-		#   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # run tailwind
+		# 如果使用 tailwind...
+		# - name: 下载并安装 tailwindcss 二进制文件
+		#   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # 运行 tailwind
 
 
-		- name: Download and install Trunk binary
+		- name: 下载并安装 Trunk 二进制文件
 			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
-		- name: Build with Trunk
-			# "${GITHUB_REPOSITORY#*/}" evaluates into the name of the repository
-			# using --public-url something will allow trunk to modify all the href paths like from favicon.ico to repo_name/favicon.ico .
-			# this is necessary for github pages where the site is deployed to username.github.io/repo_name and all files must be requested
-			# relatively as favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
-			# will obviously return error 404 not found.
+		- name: 使用 Trunk 构建
+			# "${GITHUB_REPOSITORY#*/}" 仓库的名称
+			# 使用 --public-url 选项将允许 trunk 修改所有 href 路径，例如从 favicon.ico 到 repo_name/favicon.ico。
+			# 这对于将站点部署到 username.github.io/repo_name 的 Github Pages 是必要的，并且所有文件都必须以
+			# favicon.ico 的形式相对请求。如果我们跳过 public-url 选项，则 href 路径将改为请求 username.github.io/favicon.ico，这
+			# 显然会返回错误 404 not found。
 			run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
 
 
-		# Deploy to gh-pages branch
-		# - name: Deploy 🚀
+		# 部署到 gh-pages 分支
+		# - name: 部署 🚀
 		#   uses: JamesIves/github-pages-deploy-action@v4
 		#   with:
 		#     folder: dist
 
 
-		# Deploy with Github Static Pages
+		# 使用 Github 静态页面部署
 
-		- name: Setup Pages
+		- name: 设置页面
 			uses: actions/configure-pages@v4
 			with:
 			enablement: true
 			# token:
 
-		- name: Upload artifact
+		- name: 上传工件
 			uses: actions/upload-pages-artifact@v2
 			with:
-			# Upload dist dir
+			# 上传 dist 目录
 			path: './dist'
 
-		- name: Deploy to GitHub Pages 🚀
+		- name: 部署到 GitHub Pages 🚀
 			id: deployment
 			uses: actions/deploy-pages@v3
 
 ```
 
-For more on deploying to Github Pages [see the example repo here](https://github.com/diversable/deploy_leptos_csr_to_gh_pages)
+有关部署到 Github Pages 的更多信息，[请参阅此处的示例仓库](https://github.com/diversable/deploy_leptos_csr_to_gh_pages)
 
 ## Vercel
 
-### Step 1: Set Up Vercel
+### 步骤 1：设置 Vercel
 
-In the Vercel Web UI...
+在 Vercel Web UI 中...
 
-1. Create a new project
-2. Ensure
-   - The "Build Command" is left empty with Override on
-   - The "Output Directory" is changed to dist (which is the default output directory for Trunk builds) and the Override is on
+1. 创建一个新项目
+2. 确保
+   - “构建命令” 留空，并启用覆盖
+   - “输出目录” 更改为 dist（这是 Trunk 构建的默认输出目录），并启用覆盖
 
 <img src="./image.png" />
 
-### Step 2: Add Vercel Credentials for GitHub Actions
+### 步骤 2：为 GitHub Actions 添加 Vercel 凭据
 
-Note: Both the preview and deploy actions will need your Vercel credentials setup in GitHub secrets
+注意：预览和部署操作都需要在 GitHub secrets 中设置你的 Vercel 凭据
 
-1. Retrieve your [Vercel Access Token](https://vercel.com/guides/how-do-i-use-a-vercel-api-access-token) by going to "Account Settings" > "Tokens" and creating a new token - save the token to use in sub-step 5, below.
+1. 通过转到“帐户设置”>“令牌”并创建一个新令牌来获取你的 [Vercel 访问令牌](https://vercel.com/guides/how-do-i-use-a-vercel-api-access-token) - 保存该令牌以在下面的子步骤 5 中使用。
 
-2. Install the [Vercel CLI](https://vercel.com/cli) using the `npm i -g vercel` command, then run `vercel login` to login to your acccount.
+2. 使用 `npm i -g vercel` 命令安装 [Vercel CLI](https://vercel.com/cli)，然后运行 `vercel login` 登录到你的帐户。
 
-3. Inside your folder, run `vercel link` to create a new Vercel project; in the CLI, you will be asked to 'Link to an existing project?' - answer yes, then enter the name you created in step 1. A new `.vercel` folder will be created for you.
+3. 在你的文件夹中，运行 `vercel link` 创建一个新的 Vercel 项目；在 CLI 中，你将被问到“链接到现有项目吗？” - 回答是，然后输入你在步骤 1 中创建的名称。将为你创建一个新的 `.vercel` 文件夹。
 
-4. Inside the generated `.vercel` folder, open the the `project.json` file and save the "projectId" and "orgId" for the next step.
+4. 在生成的 `.vercel` 文件夹中，打开 `project.json` 文件并保存“projectId”和“orgId”以用于下一步。
 
-5. Inside GitHub, go the repo's "Settings" > "Secrets and Variables" > "Actions" and add the following as [Repository secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets):
-   - save your Vercel Access Token (from sub-step 1) as the `VERCEL_TOKEN` secret
-   - from the `.vercel/project.json` add "projectID" as `VERCEL_PROJECT_ID`
-   - from the `.vercel/project.json` add "orgId" as `VERCEL_ORG_ID`
+5. 在 GitHub 中，转到仓库的“设置”>“密钥和变量”>“操作”，并将以下内容添加为 [仓库密钥](https://docs.github.com/en/actions/security-guides/encrypted-secrets)：
+   - 将你的 Vercel 访问令牌（来自子步骤 1）保存为 `VERCEL_TOKEN` 密钥
+   - 从 `.vercel/project.json` 添加“projectID”作为 `VERCEL_PROJECT_ID`
+   - 从 `.vercel/project.json` 添加“orgId”作为 `VERCEL_ORG_ID`
 
-<i>For full instructions see ["How can I use Github Actions with Vercel"](https://vercel.com/guides/how-can-i-use-github-actions-with-vercel)</i>
+<i>有关完整说明，请参阅 [“如何在 Vercel 中使用 Github Actions”](https://vercel.com/guides/how-can-i-use-github-actions-with-vercel)</i>
 
-### Step 3: Add Github Action Scripts
+### 步骤 3：添加 Github Action 脚本
 
-Finally, you're ready to simply copy and paste the two files - one for deployment, one for PR previews - from below or from [the example repo's `.github/workflows/` folder](https://github.com/diversable/vercel-leptos-CSR-deployment/tree/leptos_0.6/.github/workflows) into your own github workflows folder - then, on your next commit or PR deploys will occur automatically.
+最后，你只需从下方或 [示例仓库的 `.github/workflows/` 文件夹](https://github.com/diversable/vercel-leptos-CSR-deployment/tree/leptos_0.6/.github/workflows) 中复制粘贴这两个文件——一个用于部署，一个用于 PR 预览——到你的 Github 工作流文件夹中，然后，在你的下一次提交或 PR 时，部署将自动进行。
 
-<i>Production deployment script: `vercel_deploy.yml`</i>
+<i>生产部署脚本：`vercel_deploy.yml`</i>
 
 ```admonish example collapsible=true
 
-	name: Release to Vercel
+	name: 发布到 Vercel
 
 	on:
 	push:
@@ -178,26 +178,26 @@ Finally, you're ready to simply copy and paste the two files - one for deploymen
 			with:
 			components: clippy, rustfmt
 		- uses: Swatinem/rust-cache@v2
-		- name: Setup Rust
+		- name: 设置 Rust
 			run: |
 			rustup target add wasm32-unknown-unknown
 			cargo clippy
 			cargo fmt --check
 
-		- name: Download and install Trunk binary
+		- name: 下载并安装 Trunk 二进制文件
 			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
 
-		- name: Build with Trunk
+		- name: 使用 Trunk 构建
 			run: ./trunk build --release
 
-		- name: Install Vercel CLI
+		- name: 安装 Vercel CLI
 			run: npm install --global vercel@latest
 
-		- name: Pull Vercel Environment Information
+		- name: 拉取 Vercel 环境信息
 			run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-		- name: Deploy to Vercel & Display URL
+		- name: 部署到 Vercel 并显示 URL
 			id: deployment
 			working-directory: ./dist
 			run: |
@@ -206,14 +206,14 @@ Finally, you're ready to simply copy and paste the two files - one for deploymen
 
 ```
 
-<i>Preview deployments script: `vercel_preview.yml`</i>
+<i>预览部署脚本：`vercel_preview.yml`</i>
 
 ```admonish example collapsible=true
 
-	# For more info re: vercel action see:
+	# 有关 Vercel 操作的更多信息，请参阅：
 	# https://github.com/amondnet/vercel-action
 
-	name: Leptos CSR Vercel Preview
+	name: Leptos CSR Vercel 预览
 
 	on:
 	pull_request:
@@ -235,7 +235,7 @@ Finally, you're ready to simply copy and paste the two files - one for deploymen
 		- uses: dtolnay/rust-toolchain@nightly
 			with:
 			components: rustfmt
-		- name: Enforce formatting
+		- name: 强制格式化
 			run: cargo fmt --check
 
 	clippy:
@@ -247,23 +247,23 @@ Finally, you're ready to simply copy and paste the two files - one for deploymen
 			with:
 			components: clippy
 		- uses: Swatinem/rust-cache@v2
-		- name: Linting
+		- name: Lint
 			run: cargo clippy -- -D warnings
 
 	test:
-		name: Test
+		name: 测试
 		runs-on: ubuntu-latest
 		needs: [fmt, clippy]
 		steps:
 		- uses: actions/checkout@v4
 		- uses: dtolnay/rust-toolchain@nightly
 		- uses: Swatinem/rust-cache@v2
-		- name: Run tests
+		- name: 运行测试
 			run: cargo test
 
 	build-and-preview-deploy:
 		runs-on: ubuntu-latest
-		name: Build and Preview
+		name: 构建和预览
 
 		needs: [test, clippy, fmt]
 
@@ -280,17 +280,17 @@ Finally, you're ready to simply copy and paste the two files - one for deploymen
 
 		- uses: dtolnay/rust-toolchain@nightly
 		- uses: Swatinem/rust-cache@v2
-		- name: Build
+		- name: 构建
 			run: rustup target add wasm32-unknown-unknown
 
-		- name: Download and install Trunk binary
+		- name: 下载并安装 Trunk 二进制文件
 			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
 
-		- name: Build with Trunk
+		- name: 使用 Trunk 构建
 			run: ./trunk build --release
 
-		- name: Preview Deploy
+		- name: 预览部署
 			id: preview
 			uses: amondnet/vercel-action@v25.1.1
 			with:
@@ -301,47 +301,47 @@ Finally, you're ready to simply copy and paste the two files - one for deploymen
 			github-comment: true
 			working-directory: ./dist
 
-		- name: Display Deployed URL
+		- name: 显示已部署 URL
 			run: |
-			echo "Deployed app URL: ${{ steps.preview.outputs.preview-url }}" >> $GITHUB_STEP_SUMMARY
+			echo "已部署的应用程序 URL：${{ steps.preview.outputs.preview-url }}" >> $GITHUB_STEP_SUMMARY
 
 
 ```
 
-See [the example repo here](https://github.com/diversable/vercel-leptos-CSR-deployment) for more.
+有关更多信息，请参阅 [此处的示例仓库](https://github.com/diversable/vercel-leptos-CSR-deployment)。
 
-## Spin - Serverless WebAssembly
+## Spin - 无服务器 WebAssembly
 
-Another option is using a serverless platform such as Spin. Although [Spin](https://github.com/fermyon/spin) is open source and you can run it on your own infrastructure (eg. inside Kubernetes), the easiest way to get started with Spin in production is to use the Fermyon Cloud.
+另一种选择是使用 Spin 等无服务器平台。虽然 [Spin](https://github.com/fermyon/spin) 是开源的，你可以在自己的基础设施上运行它（例如在 Kubernetes 内部），但在生产环境中开始使用 Spin 最简单的方法是使用 Fermyon Cloud。
 
-Start by installing the [Spin CLI using the instructions, here](https://developer.fermyon.com/spin/v2/install), and creating a Github repo for your Leptos CSR project, if you haven't done so already.
+首先按照 [此处的说明](https://developer.fermyon.com/spin/v2/install) 安装 Spin CLI，并为你的 Leptos CSR 项目创建一个 Github 仓库（如果你还没有这样做）。
 
-1. Open "Fermyon Cloud" > "User Settings". If you’re not logged in, choose the Login With GitHub button.
+1. 打开“Fermyon Cloud”>“用户设置”。如果你尚未登录，请选择“使用 GitHub 登录”按钮。
 
-2. In the “Personal Access Tokens”, choose “Add a Token”. Enter the name “gh_actions” and click “Create Token”.
+2. 在“个人访问令牌”中，选择“添加令牌”。输入名称“gh_actions”并单击“创建令牌”。
 
-3. Fermyon Cloud displays the token; click the copy button to copy it to your clipboard.
+3. Fermyon Cloud 将显示该令牌；单击复制按钮将其复制到剪贴板。
 
-4. Go into your Github repo and open "Settings" > "Secrets and Variables" > "Actions" and add the Fermyon cloud token to "Repository secrets" using the variable name "FERMYON_CLOUD_TOKEN"
+4. 进入你的 Github 仓库，打开“设置”>“密钥和变量”>“操作”，并将 Fermyon 云令牌添加到“存储库密钥”中，使用变量名“FERMYON_CLOUD_TOKEN”
 
-5. Copy and paste the following Github Actions scripts (below) into your `.github/workflows/<SCRIPT_NAME>.yml` files
+5. 将以下 Github Actions 脚本（如下）复制并粘贴到你的 `.github/workflows/<SCRIPT_NAME>.yml` 文件中
 
-6. With the 'preview' and 'deploy' scripts active, Github Actions will now generate previews on pull requests & deploy automatically on updates to your 'main' branch.
+6. 激活“预览”和“部署”脚本后，Github Actions 现在将在拉取请求时生成预览，并在更新到“主”分支时自动部署。
 
-<i>Production deployment script: `spin_deploy.yml`</i>
+<i>生产部署脚本：`spin_deploy.yml`</i>
 
 ```admonish example collapsible=true
 
-	# For setup instructions needed for Fermyon Cloud, see:
+	# 有关 Fermyon Cloud 所需的设置说明，请参阅：
 	# https://developer.fermyon.com/cloud/github-actions
 
-	# For reference, see:
+	# 供参考，请参阅：
 	# https://developer.fermyon.com/cloud/changelog/gh-actions-spin-deploy
 
-	# For the Fermyon gh actions themselves, see:
+	# 对于 Fermyon gh 操作本身，请参阅：
 	# https://github.com/fermyon/actions
 
-	name: Release to Spin Cloud
+	name: 发布到 Spin Cloud
 
 	on:
 	push:
@@ -352,8 +352,8 @@ Start by installing the [Spin CLI using the instructions, here](https://develope
 	contents: read
 	id-token: write
 
-	# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-	# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+	# 仅允许一个并发部署，跳过正在运行的运行和最新排队的运行之间排队的运行。
+	# 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成。
 	concurrency:
 	group: "spin"
 	cancel-in-progress: false
@@ -372,41 +372,41 @@ Start by installing the [Spin CLI using the instructions, here](https://develope
 		steps:
 		- uses: actions/checkout@v4 # repo checkout
 
-		# Install Rust Nightly Toolchain, with Clippy & Rustfmt
-		- name: Install nightly Rust
+		# 安装 Rust Nightly 工具链，包括 Clippy 和 Rustfmt
+		- name: 安装 nightly Rust
 			uses: dtolnay/rust-toolchain@nightly
 			with:
 			components: clippy, rustfmt
 
-		- name: Add WASM & WASI targets
+		- name: 添加 WASM 和 WASI 目标
 			run: rustup target add wasm32-unknown-unknown && rustup target add wasm32-wasi
 
 		- name: lint
 			run: cargo clippy & cargo fmt
 
 
-		# If using tailwind...
-		# - name: Download and install tailwindcss binary
-		#   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # run tailwind
+		# 如果使用 tailwind...
+		# - name: 下载并安装 tailwindcss 二进制文件
+		#   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # 运行 tailwind
 
 
-		- name: Download and install Trunk binary
+		- name: 下载并安装 Trunk 二进制文件
 			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
 
-		- name: Build with Trunk
+		- name: 使用 Trunk 构建
 			run: ./trunk build --release
 
 
-		# Install Spin CLI & Deploy
+		# 安装 Spin CLI 并部署
 
-		- name: Setup Spin
+		- name: 设置 Spin
 			uses: fermyon/actions/spin/setup@v1
 			# with:
 			# plugins:
 
 
-		- name: Build and deploy
+		- name: 构建和部署
 			id: deployment
 			uses: fermyon/actions/spin/deploy@v1
 			with:
@@ -418,28 +418,28 @@ Start by installing the [Spin CLI using the instructions, here](https://develope
 				# password=${{ secrets.SECURE_PASSWORD }}
 				# apikey=${{ secrets.API_KEY }}
 
-		# Create an explicit message to display the URL of the deployed app, as well as in the job graph
-		- name: Deployed URL
+		# 创建一条显式消息以显示已部署应用程序的 URL，以及在作业图中显示
+		- name: 已部署的 URL
 			run: |
-			echo "Deployed app URL: ${{ steps.deployment.outputs.app-url }}" >> $GITHUB_STEP_SUMMARY
+			echo "已部署的应用程序 URL：${{ steps.deployment.outputs.app-url }}" >> $GITHUB_STEP_SUMMARY
 
 ```
 
-<i>Preview deployment script: `spin_preview.yml`</i>
+<i>预览部署脚本：`spin_preview.yml`</i>
 
 ```admonish example collapsible=true
 
-	# For setup instructions needed for Fermyon Cloud, see:
+	# 有关 Fermyon Cloud 所需的设置说明，请参阅：
 	# https://developer.fermyon.com/cloud/github-actions
 
 
-	# For the Fermyon gh actions themselves, see:
+	# 对于 Fermyon gh 操作本身，请参阅：
 	# https://github.com/fermyon/actions
 
-	# Specifically:
+	# 具体来说：
 	# https://github.com/fermyon/actions?tab=readme-ov-file#deploy-preview-of-spin-app-to-fermyon-cloud---fermyonactionsspinpreviewv1
 
-	name: Preview on Spin Cloud
+	name: 在 Spin Cloud 上预览
 
 	on:
 	pull_request:
@@ -451,8 +451,8 @@ Start by installing the [Spin CLI using the instructions, here](https://develope
 	contents: read
 	pull-requests: write
 
-	# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-	# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+	# 仅允许一个并发部署，跳过正在运行的运行和最新排队的运行之间排队的运行。
+	# 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成。
 	concurrency:
 	group: "spin"
 	cancel-in-progress: false
@@ -471,41 +471,41 @@ Start by installing the [Spin CLI using the instructions, here](https://develope
 		steps:
 		- uses: actions/checkout@v4 # repo checkout
 
-		# Install Rust Nightly Toolchain, with Clippy & Rustfmt
-		- name: Install nightly Rust
+		# 安装 Rust Nightly 工具链，包括 Clippy 和 Rustfmt
+		- name: 安装 nightly Rust
 			uses: dtolnay/rust-toolchain@nightly
 			with:
 			components: clippy, rustfmt
 
-		- name: Add WASM & WASI targets
+		- name: 添加 WASM 和 WASI 目标
 			run: rustup target add wasm32-unknown-unknown && rustup target add wasm32-wasi
 
 		- name: lint
 			run: cargo clippy & cargo fmt
 
 
-		# If using tailwind...
-		# - name: Download and install tailwindcss binary
-		#   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # run tailwind
+		# 如果使用 tailwind...
+		# - name: 下载并安装 tailwindcss 二进制文件
+		#   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # 运行 tailwind
 
 
-		- name: Download and install Trunk binary
+		- name: 下载并安装 Trunk 二进制文件
 			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
 
-		- name: Build with Trunk
+		- name: 使用 Trunk 构建
 			run: ./trunk build --release
 
 
-		# Install Spin CLI & Deploy
+		# 安装 Spin CLI 并部署
 
-		- name: Setup Spin
+		- name: 设置 Spin
 			uses: fermyon/actions/spin/setup@v1
 			# with:
 			# plugins:
 
 
-		- name: Build and preview
+		- name: 构建和预览
 			id: preview
 			uses: fermyon/actions/spin/preview@v1
 			with:
@@ -520,10 +520,10 @@ Start by installing the [Spin CLI using the instructions, here](https://develope
 				# apikey=${{ secrets.API_KEY }}
 
 
-		- name: Display Deployed URL
+		- name: 显示已部署 URL
 			run: |
-			echo "Deployed app URL: ${{ steps.preview.outputs.app-url }}" >> $GITHUB_STEP_SUMMARY
+			echo "已部署的应用程序 URL：${{ steps.preview.outputs.app-url }}" >> $GITHUB_STEP_SUMMARY
 
 ```
 
-See [the example repo here](https://github.com/diversable/leptos-spin-CSR).
+请参阅 [此处的示例仓库](https://github.com/diversable/leptos-spin-CSR)。

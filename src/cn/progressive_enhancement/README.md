@@ -1,36 +1,36 @@
-# Progressive Enhancement (and Graceful Degradation)
+# 渐进增强（和优雅降级）
 
-I’ve been driving around Boston for about fifteen years. If you don’t know Boston, let me tell you: Massachusetts has some of the most aggressive drivers(and pedestrians!) in the world. I’ve learned to practice what’s sometimes called “defensive driving”: assuming that someone’s about to swerve in front of you at an intersection when you have the right of way, preparing for a pedestrian to cross into the street at any moment, and driving accordingly.
+我在波士顿开车已经大约十五年了。如果你不了解波士顿，让我告诉你：马萨诸塞州拥有一些世界上最激进的司机（和行人！）我学会了实践有时被称为“防御性驾驶”的东西：假设当你在交叉路口有路权时，有人即将在你面前突然转向，准备好随时有行人过马路，并相应地驾驶。
 
-“Progressive enhancement” is the “defensive driving” of web design. Or really, that’s “graceful degradation,” although they’re two sides of the same coin, or the same process, from two different directions.
+“渐进增强”是网页设计的“防御性驾驶”。或者实际上，那是“优雅降级”，尽管它们是同一枚硬币的两个面，或者说是同一个过程，只是方向不同。
 
-**Progressive enhancement**, in this context, means beginning with a simple HTML site or application that works for any user who arrives at your page, and gradually enhancing it with layers of additional features: CSS for styling, JavaScript for interactivity, WebAssembly for Rust-powered interactivity; using particular Web APIs for a richer experience if they’re available and as needed.
+在这种情况下，**渐进增强** 意味着从一个简单的 HTML 网站或应用程序开始，该网站或应用程序适用于访问你的页面的任何用户，并逐渐使用其他功能层对其进行增强：用于样式的 CSS、用于交互性的 JavaScript、用于 Rust 驱动的交互性的 WebAssembly；如果可用，则根据需要使用特定的 Web API 以获得更丰富的体验。
 
-**Graceful degradation** means handling failure gracefully when parts of that stack of enhancement *aren’t* available. Here are some sources of failure your users might encounter in your app:
-- Their browser doesn’t support WebAssembly because it needs to be updated.
-- Their browser can’t support WebAssembly because browser updates are limited to newer OS versions, which can’t be installed on the device. (Looking at you, Apple.)
-- They have WASM turned off for security or privacy reasons.
-- They have JavaScript turned off for security or privacy reasons.
-- JavaScript isn’t supported on their device (for example, some accessibility devices only support HTML browsing)
-- The JavaScript (or WASM) never arrived at their device because they walked outside and lost WiFi.
-- They stepped onto a subway car after loading the initial page and subsequent navigations can’t load data.
-- ... and so on.
+**优雅降级** 意味着当增强堆栈的某些部分*不可用*时，能够优雅地处理故障。以下是一些你的用户在你的应用程序中可能遇到的故障来源：
+- 他们的浏览器不支持 WebAssembly，因为它需要更新。
+- 他们的浏览器无法支持 WebAssembly，因为浏览器更新仅限于较新的操作系统版本，而这些版本无法在其设备上安装。（说你呢，Apple。）
+- 出于安全或隐私原因，他们已关闭 WASM。
+- 出于安全或隐私原因，他们已关闭 JavaScript。
+- 他们的设备不支持 JavaScript（例如，某些辅助功能设备仅支持 HTML 浏览）
+- 因为他们走到室外并在 WASM 完成加载之前丢失了 WiFi，所以 JavaScript（或 WASM）从未到达他们的设备。
+- 他们在加载初始页面后踏上地铁车厢，后续导航无法加载数据。
+- ... 等等。
 
-How much of your app still works if one of these holds true? Two of them? Three? 
+如果其中之一成立，你的应用程序还有多少可以正常工作？两个？三个？
 
-If the answer is something like “95%... okay, then 90%... okay, then 75%,” that’s graceful degradation. If the answer is “my app shows a blank screen unless everything works correctly,” that’s... rapid unscheduled disassembly.
+如果答案类似于“95%... 好吧，然后是 90%... 好吧，然后是 75%”，那就是优雅降级。如果答案是“除非一切正常，否则我的应用程序会显示一个空白屏幕”，那就是... 快速计划外拆卸。
 
-**Graceful degradation is especially important for WASM apps,** because WASM is the newest and least-likely-to-be-supported of the four languages that run in the browser (HTML, CSS, JS, WASM).
+**优雅降级对于 WASM 应用程序尤其重要，** 因为 WASM 是在浏览器中运行的四种语言（HTML、CSS、JS、WASM）中最新的、最不可能被支持的。
 
-Luckily, we’ve got some tools to help.
+幸运的是，我们有一些工具可以提供帮助。
 
-## Defensive Design
+## 防御性设计
 
-There are a few practices that can help your apps degrade more gracefully:
-1. **Server-side rendering.** Without SSR, your app simply doesn’t work without both JS and WASM loading. In some cases this may be appropriate (think internal apps gated behind a login) but in others it’s simply broken.
-2. **Native HTML elements.** Use HTML elements that do the things that you want, without additional code: `<a>` for navigation (including to hashes within the page), `<details>` for an accordion, `<form>` to persist information in the URL, etc.
-3. **URL-driven state.** The more of your global state is stored in the URL (as a route param or part of the query string), the more of the page can be generated during server rendering and updated by an `<a>` or a `<form>`, which means that not only navigations but state changes can work without JS/WASM.
-4. **[`SsrMode::PartiallyBlocked` or `SsrMode::InOrder`](https://docs.rs/leptos_router/latest/leptos_router/enum.SsrMode.html).** Out-of-order streaming requires a small amount of inline JS, but can fail if 1) the connection is broken halfway through the response or 2) the client’s device doesn’t support JS. Async streaming will give a complete HTML page, but only after all resources load. In-order streaming begins showing pieces of the page sooner, in top-down order. “Partially-blocked” SSR builds on out-of-order streaming by replacing `<Suspense/>` fragments that read from blocking resources on the server. This adds marginally to the initial response time (because of the `O(n)` string replacement work), in exchange for a more complete initial HTML response. This can be a good choice for situations in which there’s a clear distinction between “more important” and “less important” content, e.g., blog post vs. comments, or product info vs. reviews. If you choose to block on all the content, you’ve essentially recreated async rendering.
-5. **Leaning on `<form>`s.** There’s been a bit of a `<form>` renaissance recently, and it’s no surprise. The ability of a `<form>` to manage complicated `POST` or `GET` requests in an easily-enhanced way makes it a powerful tool for graceful degradation. The example in [the `<Form/>` chapter](../router/20_form.md), for example, would work fine with no JS/WASM: because it uses a `<form method="GET">` to persist state in the URL, it works with pure HTML by making normal HTTP requests and then progressively enhances to use client-side navigations instead.
+有一些实践可以帮助你的应用程序更优雅地降级：
+1. **服务器端渲染。** 没有 SSR，你的应用程序在没有加载 JS 和 WASM 的情况下根本无法工作。在某些情况下，这可能是合适的（想想在登录后受保护的内部应用程序），但在其他情况下，它只是坏了。
+2. **原生 HTML 元素。** 使用可以完成你想要的事情的 HTML 元素，而无需额外的代码：`<a>` 用于导航（包括页面内的哈希值）、`<details>` 用于手风琴、`<form>` 用于在 URL 中保存信息等。
+3. **URL 驱动的状态。** 你的全局状态越多存储在 URL 中（作为路由参数或查询字符串的一部分），在服务器端渲染期间可以生成的页面就越多，并且可以通过 `<a>` 或 `<form>` 更新，这意味着不仅导航而且状态更改都可以在没有 JS/WASM 的情况下工作。
+4. **[`SsrMode::PartiallyBlocked` 或 `SsrMode::InOrder`](https://docs.rs/leptos_router/latest/leptos_router/enum.SsrMode.html)。** 乱序流式传输需要少量内联 JS，但如果 1) 连接在响应中途断开或 2) 客户端设备不支持 JS，则可能会失败。异步流式传输将提供一个完整的 HTML 页面，但只有在所有资源加载完成后才会提供。顺序流式传输会更快地开始显示页面的各个部分，按自上而下的顺序。“部分阻塞”SSR 通过在服务器上替换从阻塞资源读取的 `<Suspense/>` 片段来构建乱序流式传输。这会略微增加初始响应时间（因为 `O(n)` 字符串替换工作），以换取更完整的初始 HTML 响应。对于“更重要”和“不太重要”内容之间有明显区别的情况，例如博客文章与评论，或产品信息与评论，这是一个不错的选择。如果你选择阻塞所有内容，则实际上你已经重新创建了异步渲染。
+5. **依赖 `<form>`。** 最近 `<form>` 有点复兴，这并不奇怪。`<form>` 以易于增强的方式管理复杂的 `POST` 或 `GET` 请求的能力使其成为优雅降级的强大工具。例如，[`<Form/>` 章节](../router/20_form.md) 中的示例在没有 JS/WASM 的情况下也能很好地工作：因为它使用 `<form method="GET">` 在 URL 中保存状态，所以它通过发出普通的 HTTP 请求来使用纯 HTML，然后逐步增强以使用客户端导航代替。
 
-There’s one final feature of the framework that we haven’t seen yet, and which builds on this characteristic of forms to build powerful applications: the `<ActionForm/>`.
+框架还有一个我们尚未看到的功能，它建立在表单的这一特性之上，用于构建强大的应用程序：`<ActionForm/>`。
