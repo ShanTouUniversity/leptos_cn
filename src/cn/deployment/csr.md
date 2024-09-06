@@ -14,9 +14,13 @@ _注意：Leptos 不认可使用任何特定的托管服务——你可以随意
 
 示例：
 
-- [Github Pages](#github-pages)
-- [Vercel](#vercel)
-- [Spin（无服务器 WebAssembly）](#spin---serverless-webassembly)
+- [部署客户端渲染的应用程序](#部署客户端渲染的应用程序)
+	- [Github Pages](#github-pages)
+	- [Vercel](#vercel)
+		- [步骤 1：设置 Vercel](#步骤-1设置-vercel)
+		- [步骤 2：为 GitHub Actions 添加 Vercel 凭据](#步骤-2为-github-actions-添加-vercel-凭据)
+		- [步骤 3：添加 Github Action 脚本](#步骤-3添加-github-action-脚本)
+	- [Spin - 无服务器 WebAssembly](#spin---无服务器-webassembly)
 
 ## Github Pages
 
@@ -24,92 +28,91 @@ _注意：Leptos 不认可使用任何特定的托管服务——你可以随意
 
 ```admonish example collapsible=true
 
-	name: 发布到 Github Pages
+    name: Release to Github Pages
 
-	on:
-	push:
-		branches: [main]
-	workflow_dispatch:
+    on:
+      push:
+        branches: [main]
+      workflow_dispatch:
 
-	permissions:
-	contents: write # 用于提交到 gh-pages 分支。
-	pages: write
-	id-token: write
+    permissions:
+      contents: write # 允许写入 gh-pages 分支。
+      pages: write
+      id-token: write
 
-	# 只允许一个并发部署，跳过正在进行的运行和最新排队的运行之间排队的运行。
-	# 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成。
-	concurrency:
-	group: "pages"
-	cancel-in-progress: false
+    # 只允许一个并发部署，跳过正在进行的运行和最新排队的运行之间排队的运行。
+    # 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成。
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
 
-	jobs:
-	Github-Pages-Release:
+    jobs:
+      Github-Pages-Release:
 
-		timeout-minutes: 10
+        timeout-minutes: 10
 
-		environment:
-		name: github-pages
-		url: ${{ steps.deployment.outputs.page_url }}
+        environment:
+          name: github-pages
+          url: ${{ steps.deployment.outputs.page_url }}
 
-		runs-on: ubuntu-latest
+        runs-on: ubuntu-latest
 
-		steps:
-		- uses: actions/checkout@v4 # repo checkout
+        steps:
+          - uses: actions/checkout@v4 # 检出代码库
 
-		# 使用 Clippy & Rustfmt 安装 Rust Nightly 工具链
-		- name: 安装 nightly Rust
-			uses: dtolnay/rust-toolchain@nightly
-			with:
-			components: clippy, rustfmt
+          # 安装 Rust Nightly 工具链，包括 Clippy 和 Rustfmt
+          - name: Install nightly Rust
+            uses: dtolnay/rust-toolchain@nightly
+            with:
+              components: clippy, rustfmt
 
-		- name: 添加 WASM 目标
-			run: rustup target add wasm32-unknown-unknown
+          - name: Add WASM target
+            run: rustup target add wasm32-unknown-unknown
 
-		- name: lint
-			run: cargo clippy & cargo fmt
-
-
-		# 如果使用 tailwind...
-		# - name: 下载并安装 tailwindcss 二进制文件
-		#   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # 运行 tailwind
+          - name: lint
+            run: cargo clippy & cargo fmt
 
 
-		- name: 下载并安装 Trunk 二进制文件
-			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
-
-		- name: 使用 Trunk 构建
-			# "${GITHUB_REPOSITORY#*/}" 仓库的名称
-			# 使用 --public-url 选项将允许 trunk 修改所有 href 路径，例如从 favicon.ico 到 repo_name/favicon.ico。
-			# 这对于将站点部署到 username.github.io/repo_name 的 Github Pages 是必要的，并且所有文件都必须以
-			# favicon.ico 的形式相对请求。如果我们跳过 public-url 选项，则 href 路径将改为请求 username.github.io/favicon.ico，这
-			# 显然会返回错误 404 not found。
-			run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
+          # 如果使用 tailwind...
+          # - name: Download and install tailwindcss binary
+          #   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # 运行 tailwind
 
 
-		# 部署到 gh-pages 分支
-		# - name: 部署 🚀
-		#   uses: JamesIves/github-pages-deploy-action@v4
-		#   with:
-		#     folder: dist
+          - name: Download and install Trunk binary
+            run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.4/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+
+          - name: Build with Trunk
+            # "${GITHUB_REPOSITORY#*/}" 计算为存储库的名称
+            # 使用 --public-url something 将允许 trunk 修改所有 href 路径，例如从 favicon.ico 到 repo_name/favicon.ico 。
+            # 这对于将站点部署到 username.github.io/repo_name 的 github pages 是必要的，并且所有文件都必须作为 favicon.ico 相对请求。
+            # 如果我们跳过 public-url 选项，href 路径将改为请求 username.github.io/favicon.ico，这显然会返回错误 404 未找到。
+            run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"
 
 
-		# 使用 Github 静态页面部署
+          # 部署到 gh-pages 分支
+          # - name: Deploy 🚀
+          #   uses: JamesIves/github-pages-deploy-action@v4
+          #   with:
+          #     folder: dist
 
-		- name: 设置页面
-			uses: actions/configure-pages@v4
-			with:
-			enablement: true
-			# token:
 
-		- name: 上传工件
-			uses: actions/upload-pages-artifact@v2
-			with:
-			# 上传 dist 目录
-			path: './dist'
+          # 使用 Github 静态页面部署
 
-		- name: 部署到 GitHub Pages 🚀
-			id: deployment
-			uses: actions/deploy-pages@v3
+          - name: Setup Pages
+            uses: actions/configure-pages@v4
+            with:
+              enablement: true
+              # token:
+
+          - name: Upload artifact
+            uses: actions/upload-pages-artifact@v2
+            with:
+              # 上传 dist 目录
+              path: './dist'
+
+          - name: Deploy to GitHub Pages 🚀
+            id: deployment
+            uses: actions/deploy-pages@v3
 
 ```
 
@@ -155,54 +158,54 @@ _注意：Leptos 不认可使用任何特定的托管服务——你可以随意
 
 ```admonish example collapsible=true
 
-	name: 发布到 Vercel
+ name: 发布到 Vercel
 
-	on:
-	push:
-		branches:
-		- main
-	env:
-	CARGO_TERM_COLOR: always
-	VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-	VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+ on:
+ push:
+  branches:
+  - main
+ env:
+ CARGO_TERM_COLOR: always
+ VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+ VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-	jobs:
-	Vercel-Production-Deployment:
-		runs-on: ubuntu-latest
-		environment: production
-		steps:
-		- name: git-checkout
-			uses: actions/checkout@v3
+ jobs:
+ Vercel-Production-Deployment:
+  runs-on: ubuntu-latest
+  environment: production
+  steps:
+  - name: git-checkout
+   uses: actions/checkout@v3
 
-		- uses: dtolnay/rust-toolchain@nightly
-			with:
-			components: clippy, rustfmt
-		- uses: Swatinem/rust-cache@v2
-		- name: 设置 Rust
-			run: |
-			rustup target add wasm32-unknown-unknown
-			cargo clippy
-			cargo fmt --check
+  - uses: dtolnay/rust-toolchain@nightly
+   with:
+   components: clippy, rustfmt
+  - uses: Swatinem/rust-cache@v2
+  - name: 设置 Rust
+   run: |
+   rustup target add wasm32-unknown-unknown
+   cargo clippy
+   cargo fmt --check
 
-		- name: 下载并安装 Trunk 二进制文件
-			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+  - name: 下载并安装 Trunk 二进制文件
+   run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
 
-		- name: 使用 Trunk 构建
-			run: ./trunk build --release
+  - name: 使用 Trunk 构建
+   run: ./trunk build --release
 
-		- name: 安装 Vercel CLI
-			run: npm install --global vercel@latest
+  - name: 安装 Vercel CLI
+   run: npm install --global vercel@latest
 
-		- name: 拉取 Vercel 环境信息
-			run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+  - name: 拉取 Vercel 环境信息
+   run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-		- name: 部署到 Vercel 并显示 URL
-			id: deployment
-			working-directory: ./dist
-			run: |
-			vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} >> $GITHUB_STEP_SUMMARY
-			echo $GITHUB_STEP_SUMMARY
+  - name: 部署到 Vercel 并显示 URL
+   id: deployment
+   working-directory: ./dist
+   run: |
+   vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} >> $GITHUB_STEP_SUMMARY
+   echo $GITHUB_STEP_SUMMARY
 
 ```
 
@@ -210,100 +213,100 @@ _注意：Leptos 不认可使用任何特定的托管服务——你可以随意
 
 ```admonish example collapsible=true
 
-	# 有关 Vercel 操作的更多信息，请参阅：
-	# https://github.com/amondnet/vercel-action
+ # 有关 Vercel 操作的更多信息，请参阅：
+ # https://github.com/amondnet/vercel-action
 
-	name: Leptos CSR Vercel 预览
+ name: Leptos CSR Vercel 预览
 
-	on:
-	pull_request:
-		branches: [ "main" ]
+ on:
+ pull_request:
+  branches: [ "main" ]
 
-	workflow_dispatch:
+ workflow_dispatch:
 
-	env:
-	CARGO_TERM_COLOR: always
-	VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-	VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+ env:
+ CARGO_TERM_COLOR: always
+ VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+ VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-	jobs:
-	fmt:
-		name: Rustfmt
-		runs-on: ubuntu-latest
-		steps:
-		- uses: actions/checkout@v4
-		- uses: dtolnay/rust-toolchain@nightly
-			with:
-			components: rustfmt
-		- name: 强制格式化
-			run: cargo fmt --check
+ jobs:
+ fmt:
+  name: Rustfmt
+  runs-on: ubuntu-latest
+  steps:
+  - uses: actions/checkout@v4
+  - uses: dtolnay/rust-toolchain@nightly
+   with:
+   components: rustfmt
+  - name: 强制格式化
+   run: cargo fmt --check
 
-	clippy:
-		name: Clippy
-		runs-on: ubuntu-latest
-		steps:
-		- uses: actions/checkout@v4
-		- uses: dtolnay/rust-toolchain@nightly
-			with:
-			components: clippy
-		- uses: Swatinem/rust-cache@v2
-		- name: Lint
-			run: cargo clippy -- -D warnings
+ clippy:
+  name: Clippy
+  runs-on: ubuntu-latest
+  steps:
+  - uses: actions/checkout@v4
+  - uses: dtolnay/rust-toolchain@nightly
+   with:
+   components: clippy
+  - uses: Swatinem/rust-cache@v2
+  - name: Lint
+   run: cargo clippy -- -D warnings
 
-	test:
-		name: 测试
-		runs-on: ubuntu-latest
-		needs: [fmt, clippy]
-		steps:
-		- uses: actions/checkout@v4
-		- uses: dtolnay/rust-toolchain@nightly
-		- uses: Swatinem/rust-cache@v2
-		- name: 运行测试
-			run: cargo test
+ test:
+  name: 测试
+  runs-on: ubuntu-latest
+  needs: [fmt, clippy]
+  steps:
+  - uses: actions/checkout@v4
+  - uses: dtolnay/rust-toolchain@nightly
+  - uses: Swatinem/rust-cache@v2
+  - name: 运行测试
+   run: cargo test
 
-	build-and-preview-deploy:
-		runs-on: ubuntu-latest
-		name: 构建和预览
+ build-and-preview-deploy:
+  runs-on: ubuntu-latest
+  name: 构建和预览
 
-		needs: [test, clippy, fmt]
+  needs: [test, clippy, fmt]
 
-		permissions:
-		pull-requests: write
+  permissions:
+  pull-requests: write
 
-		environment:
-		name: preview
-		url: ${{ steps.preview.outputs.preview-url }}
+  environment:
+  name: preview
+  url: ${{ steps.preview.outputs.preview-url }}
 
-		steps:
-		- name: git-checkout
-			uses: actions/checkout@v4
+  steps:
+  - name: git-checkout
+   uses: actions/checkout@v4
 
-		- uses: dtolnay/rust-toolchain@nightly
-		- uses: Swatinem/rust-cache@v2
-		- name: 构建
-			run: rustup target add wasm32-unknown-unknown
+  - uses: dtolnay/rust-toolchain@nightly
+  - uses: Swatinem/rust-cache@v2
+  - name: 构建
+   run: rustup target add wasm32-unknown-unknown
 
-		- name: 下载并安装 Trunk 二进制文件
-			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+  - name: 下载并安装 Trunk 二进制文件
+   run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
 
-		- name: 使用 Trunk 构建
-			run: ./trunk build --release
+  - name: 使用 Trunk 构建
+   run: ./trunk build --release
 
-		- name: 预览部署
-			id: preview
-			uses: amondnet/vercel-action@v25.1.1
-			with:
-			vercel-token: ${{ secrets.VERCEL_TOKEN }}
-			github-token: ${{ secrets.GITHUB_TOKEN }}
-			vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-			vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-			github-comment: true
-			working-directory: ./dist
+  - name: 预览部署
+   id: preview
+   uses: amondnet/vercel-action@v25.1.1
+   with:
+   vercel-token: ${{ secrets.VERCEL_TOKEN }}
+   github-token: ${{ secrets.GITHUB_TOKEN }}
+   vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+   vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+   github-comment: true
+   working-directory: ./dist
 
-		- name: 显示已部署 URL
-			run: |
-			echo "已部署的应用程序 URL：${{ steps.preview.outputs.preview-url }}" >> $GITHUB_STEP_SUMMARY
+  - name: 显示已部署 URL
+   run: |
+   echo "已部署的应用程序 URL：${{ steps.preview.outputs.preview-url }}" >> $GITHUB_STEP_SUMMARY
 
 
 ```
@@ -332,96 +335,96 @@ _注意：Leptos 不认可使用任何特定的托管服务——你可以随意
 
 ```admonish example collapsible=true
 
-	# 有关 Fermyon Cloud 所需的设置说明，请参阅：
-	# https://developer.fermyon.com/cloud/github-actions
+ # 有关 Fermyon Cloud 所需的设置说明，请参阅：
+ # https://developer.fermyon.com/cloud/github-actions
 
-	# 供参考，请参阅：
-	# https://developer.fermyon.com/cloud/changelog/gh-actions-spin-deploy
+ # 供参考，请参阅：
+ # https://developer.fermyon.com/cloud/changelog/gh-actions-spin-deploy
 
-	# 对于 Fermyon gh 操作本身，请参阅：
-	# https://github.com/fermyon/actions
+ # 对于 Fermyon gh 操作本身，请参阅：
+ # https://github.com/fermyon/actions
 
-	name: 发布到 Spin Cloud
+ name: 发布到 Spin Cloud
 
-	on:
-	push:
-		branches: [main]
-	workflow_dispatch:
+ on:
+ push:
+  branches: [main]
+ workflow_dispatch:
 
-	permissions:
-	contents: read
-	id-token: write
+ permissions:
+ contents: read
+ id-token: write
 
-	# 仅允许一个并发部署，跳过正在运行的运行和最新排队的运行之间排队的运行。
-	# 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成。
-	concurrency:
-	group: "spin"
-	cancel-in-progress: false
+ # 仅允许一个并发部署，跳过正在运行的运行和最新排队的运行之间排队的运行。
+ # 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成。
+ concurrency:
+ group: "spin"
+ cancel-in-progress: false
 
-	jobs:
-	Spin-Release:
+ jobs:
+ Spin-Release:
 
-		timeout-minutes: 10
+  timeout-minutes: 10
 
-		environment:
-		name: production
-		url: ${{ steps.deployment.outputs.app-url }}
+  environment:
+  name: production
+  url: ${{ steps.deployment.outputs.app-url }}
 
-		runs-on: ubuntu-latest
+  runs-on: ubuntu-latest
 
-		steps:
-		- uses: actions/checkout@v4 # repo checkout
+  steps:
+  - uses: actions/checkout@v4 # repo checkout
 
-		# 安装 Rust Nightly 工具链，包括 Clippy 和 Rustfmt
-		- name: 安装 nightly Rust
-			uses: dtolnay/rust-toolchain@nightly
-			with:
-			components: clippy, rustfmt
+  # 安装 Rust Nightly 工具链，包括 Clippy 和 Rustfmt
+  - name: 安装 nightly Rust
+   uses: dtolnay/rust-toolchain@nightly
+   with:
+   components: clippy, rustfmt
 
-		- name: 添加 WASM 和 WASI 目标
-			run: rustup target add wasm32-unknown-unknown && rustup target add wasm32-wasi
+  - name: 添加 WASM 和 WASI 目标
+   run: rustup target add wasm32-unknown-unknown && rustup target add wasm32-wasi
 
-		- name: lint
-			run: cargo clippy & cargo fmt
-
-
-		# 如果使用 tailwind...
-		# - name: 下载并安装 tailwindcss 二进制文件
-		#   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # 运行 tailwind
+  - name: lint
+   run: cargo clippy & cargo fmt
 
 
-		- name: 下载并安装 Trunk 二进制文件
-			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+  # 如果使用 tailwind...
+  # - name: 下载并安装 tailwindcss 二进制文件
+  #   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # 运行 tailwind
 
 
-		- name: 使用 Trunk 构建
-			run: ./trunk build --release
+  - name: 下载并安装 Trunk 二进制文件
+   run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
 
-		# 安装 Spin CLI 并部署
-
-		- name: 设置 Spin
-			uses: fermyon/actions/spin/setup@v1
-			# with:
-			# plugins:
+  - name: 使用 Trunk 构建
+   run: ./trunk build --release
 
 
-		- name: 构建和部署
-			id: deployment
-			uses: fermyon/actions/spin/deploy@v1
-			with:
-			fermyon_token: ${{ secrets.FERMYON_CLOUD_TOKEN }}
-			# key_values: |-
-				# abc=xyz
-				# foo=bar
-			# variables: |-
-				# password=${{ secrets.SECURE_PASSWORD }}
-				# apikey=${{ secrets.API_KEY }}
+  # 安装 Spin CLI 并部署
 
-		# 创建一条显式消息以显示已部署应用程序的 URL，以及在作业图中显示
-		- name: 已部署的 URL
-			run: |
-			echo "已部署的应用程序 URL：${{ steps.deployment.outputs.app-url }}" >> $GITHUB_STEP_SUMMARY
+  - name: 设置 Spin
+   uses: fermyon/actions/spin/setup@v1
+   # with:
+   # plugins:
+
+
+  - name: 构建和部署
+   id: deployment
+   uses: fermyon/actions/spin/deploy@v1
+   with:
+   fermyon_token: ${{ secrets.FERMYON_CLOUD_TOKEN }}
+   # key_values: |-
+    # abc=xyz
+    # foo=bar
+   # variables: |-
+    # password=${{ secrets.SECURE_PASSWORD }}
+    # apikey=${{ secrets.API_KEY }}
+
+  # 创建一条显式消息以显示已部署应用程序的 URL，以及在作业图中显示
+  - name: 已部署的 URL
+   run: |
+   echo "已部署的应用程序 URL：${{ steps.deployment.outputs.app-url }}" >> $GITHUB_STEP_SUMMARY
 
 ```
 
@@ -429,100 +432,100 @@ _注意：Leptos 不认可使用任何特定的托管服务——你可以随意
 
 ```admonish example collapsible=true
 
-	# 有关 Fermyon Cloud 所需的设置说明，请参阅：
-	# https://developer.fermyon.com/cloud/github-actions
+ # 有关 Fermyon Cloud 所需的设置说明，请参阅：
+ # https://developer.fermyon.com/cloud/github-actions
 
 
-	# 对于 Fermyon gh 操作本身，请参阅：
-	# https://github.com/fermyon/actions
+ # 对于 Fermyon gh 操作本身，请参阅：
+ # https://github.com/fermyon/actions
 
-	# 具体来说：
-	# https://github.com/fermyon/actions?tab=readme-ov-file#deploy-preview-of-spin-app-to-fermyon-cloud---fermyonactionsspinpreviewv1
+ # 具体来说：
+ # https://github.com/fermyon/actions?tab=readme-ov-file#deploy-preview-of-spin-app-to-fermyon-cloud---fermyonactionsspinpreviewv1
 
-	name: 在 Spin Cloud 上预览
+ name: 在 Spin Cloud 上预览
 
-	on:
-	pull_request:
-		branches: ["main", "v*"]
-		types: ['opened', 'synchronize', 'reopened', 'closed']
-	workflow_dispatch:
+ on:
+ pull_request:
+  branches: ["main", "v*"]
+  types: ['opened', 'synchronize', 'reopened', 'closed']
+ workflow_dispatch:
 
-	permissions:
-	contents: read
-	pull-requests: write
+ permissions:
+ contents: read
+ pull-requests: write
 
-	# 仅允许一个并发部署，跳过正在运行的运行和最新排队的运行之间排队的运行。
-	# 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成。
-	concurrency:
-	group: "spin"
-	cancel-in-progress: false
+ # 仅允许一个并发部署，跳过正在运行的运行和最新排队的运行之间排队的运行。
+ # 但是，不要取消正在进行的运行，因为我们希望允许这些生产部署完成。
+ concurrency:
+ group: "spin"
+ cancel-in-progress: false
 
-	jobs:
-	Spin-Preview:
+ jobs:
+ Spin-Preview:
 
-		timeout-minutes: 10
+  timeout-minutes: 10
 
-		environment:
-		name: preview
-		url: ${{ steps.preview.outputs.app-url }}
+  environment:
+  name: preview
+  url: ${{ steps.preview.outputs.app-url }}
 
-		runs-on: ubuntu-latest
+  runs-on: ubuntu-latest
 
-		steps:
-		- uses: actions/checkout@v4 # repo checkout
+  steps:
+  - uses: actions/checkout@v4 # repo checkout
 
-		# 安装 Rust Nightly 工具链，包括 Clippy 和 Rustfmt
-		- name: 安装 nightly Rust
-			uses: dtolnay/rust-toolchain@nightly
-			with:
-			components: clippy, rustfmt
+  # 安装 Rust Nightly 工具链，包括 Clippy 和 Rustfmt
+  - name: 安装 nightly Rust
+   uses: dtolnay/rust-toolchain@nightly
+   with:
+   components: clippy, rustfmt
 
-		- name: 添加 WASM 和 WASI 目标
-			run: rustup target add wasm32-unknown-unknown && rustup target add wasm32-wasi
+  - name: 添加 WASM 和 WASI 目标
+   run: rustup target add wasm32-unknown-unknown && rustup target add wasm32-wasi
 
-		- name: lint
-			run: cargo clippy & cargo fmt
-
-
-		# 如果使用 tailwind...
-		# - name: 下载并安装 tailwindcss 二进制文件
-		#   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # 运行 tailwind
+  - name: lint
+   run: cargo clippy & cargo fmt
 
 
-		- name: 下载并安装 Trunk 二进制文件
-			run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
+  # 如果使用 tailwind...
+  # - name: 下载并安装 tailwindcss 二进制文件
+  #   run: npm install -D tailwindcss && npx tailwindcss -i <INPUT/PATH.css> -o <OUTPUT/PATH.css>  # 运行 tailwind
 
 
-		- name: 使用 Trunk 构建
-			run: ./trunk build --release
+  - name: 下载并安装 Trunk 二进制文件
+   run: wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.18.2/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-
 
 
-		# 安装 Spin CLI 并部署
-
-		- name: 设置 Spin
-			uses: fermyon/actions/spin/setup@v1
-			# with:
-			# plugins:
+  - name: 使用 Trunk 构建
+   run: ./trunk build --release
 
 
-		- name: 构建和预览
-			id: preview
-			uses: fermyon/actions/spin/preview@v1
-			with:
-			fermyon_token: ${{ secrets.FERMYON_CLOUD_TOKEN }}
-			github_token: ${{ secrets.GITHUB_TOKEN }}
-			undeploy: ${{ github.event.pull_request && github.event.action == 'closed' }}
-			# key_values: |-
-				# abc=xyz
-				# foo=bar
-			# variables: |-
-				# password=${{ secrets.SECURE_PASSWORD }}
-				# apikey=${{ secrets.API_KEY }}
+  # 安装 Spin CLI 并部署
+
+  - name: 设置 Spin
+   uses: fermyon/actions/spin/setup@v1
+   # with:
+   # plugins:
 
 
-		- name: 显示已部署 URL
-			run: |
-			echo "已部署的应用程序 URL：${{ steps.preview.outputs.app-url }}" >> $GITHUB_STEP_SUMMARY
+  - name: 构建和预览
+   id: preview
+   uses: fermyon/actions/spin/preview@v1
+   with:
+   fermyon_token: ${{ secrets.FERMYON_CLOUD_TOKEN }}
+   github_token: ${{ secrets.GITHUB_TOKEN }}
+   undeploy: ${{ github.event.pull_request && github.event.action == 'closed' }}
+   # key_values: |-
+    # abc=xyz
+    # foo=bar
+   # variables: |-
+    # password=${{ secrets.SECURE_PASSWORD }}
+    # apikey=${{ secrets.API_KEY }}
+
+
+  - name: 显示已部署 URL
+   run: |
+   echo "已部署的应用程序 URL：${{ steps.preview.outputs.app-url }}" >> $GITHUB_STEP_SUMMARY
 
 ```
 
